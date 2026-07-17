@@ -1,0 +1,14 @@
+# Ignore node_modules in both subdirectories
+**/node_modules/
+
+# Ignore environment files specifically
+backend/.env
+frontend/.env
+
+# Ignore OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Ignore logs
+*.log

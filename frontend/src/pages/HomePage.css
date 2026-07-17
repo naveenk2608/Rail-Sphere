@@ -1,0 +1,52 @@
+.hp-page { min-height: 100vh; background: var(--bg); }
+.hp-hero { background: var(--blue-light); padding: 40px 24px 36px; }
+.hp-hero-content { max-width: 900px; margin: 0 auto; }
+.hp-hero-title { font-size: 28px; font-weight: 700; color: #042c53; margin: 0 0 6px; }
+.hp-hero-sub   { font-size: 14px; color: #0c447c; margin: 0 0 24px; }
+.hp-body { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+.hp-section { padding: 28px 0; border-bottom: 1px solid var(--border); }
+.hp-section:last-child { border-bottom: none; }
+.hp-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.hp-section-title  { font-size: 16px; font-weight: 700; margin: 0; }
+.hp-see-all { font-size: 13px; color: var(--blue); text-decoration: none; }
+.hp-see-all:hover { text-decoration: underline; }
+
+/* Booking card */
+.hp-booking-card {
+  display: block; background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px; margin-bottom: 10px;
+  text-decoration: none; color: inherit;
+  transition: box-shadow 0.15s;
+}
+.hp-booking-card:hover { box-shadow: var(--shadow-md); }
+.hp-bc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.hp-train-name { font-size: 14px; font-weight: 600; }
+.hp-train-meta { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.hp-badge { font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 500; }
+.hp-badge--green { background: var(--green-bg); color: var(--green-text); }
+.hp-badge--gray  { background: var(--bg-sec); color: var(--text-sec); }
+.hp-badge--red   { background: var(--red-bg); color: var(--red); }
+.hp-route { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.hp-stn-code { font-size: 17px; font-weight: 700; }
+.hp-stn-time { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.hp-stn-right { text-align: right; }
+.hp-route-mid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.hp-route-bar { width: 100%; height: 1px; background: var(--border-sec); }
+.hp-route-dur { font-size: 11px; color: var(--text-sec); }
+.hp-pnr-row { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
+.hp-pnr-label { font-size: 11px; color: var(--text-sec); }
+.hp-pnr-val   { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+.hp-view-ticket { font-size: 12px; color: var(--blue); }
+
+/* Popular */
+.hp-popular-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hp-pop-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: background 0.12s;
+}
+.hp-pop-card:hover { background: var(--bg); }
+.hp-pop-route { font-size: 14px; font-weight: 600; }
+.hp-pop-meta  { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.hp-pop-fare  { font-size: 14px; font-weight: 700; color: var(--blue); white-space: nowrap; }

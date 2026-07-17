@@ -1,0 +1,51 @@
+.pd-page    { min-height: 100vh; background: var(--bg); }
+.pd-topbar  { background: var(--white); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
+.pd-back    { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 12px; font-size: 13px; color: var(--text-sec); }
+.pd-back:hover { background: var(--bg); }
+.pd-title   { font-size: 15px; font-weight: 700; }
+.pd-sub     { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+
+/* Stepper */
+.pd-stepper { display: flex; align-items: center; padding: 14px 24px; background: var(--white); border-bottom: 1px solid var(--border); gap: 0; flex-wrap: wrap; gap: 4px; }
+.pd-step    { font-size: 12px; color: var(--text-ter); padding: 4px 8px; border-radius: 99px; }
+.pd-step--done   { color: var(--blue); font-weight: 500; }
+.pd-step--active { background: var(--blue); color: var(--white); font-weight: 600; }
+.pd-step-line    { width: 24px; height: 1px; background: var(--border-sec); }
+
+.pd-body { max-width: 960px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+@media (max-width: 768px) { .pd-body { grid-template-columns: 1fr; } }
+
+/* Passenger cards */
+.pd-pax-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+.pd-pax-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.pd-pax-title  { font-size: 14px; font-weight: 700; }
+.pd-seat-badge { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: var(--radius-sm); }
+
+/* Saved passengers */
+.pd-saved-row   { margin-bottom: 12px; }
+.pd-saved-label { font-size: 11px; color: var(--text-sec); margin-bottom: 6px; }
+.pd-saved-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pd-saved-chip  { padding: 5px 12px; background: var(--bg-sec); border: 1px solid var(--border); border-radius: 99px; font-size: 12px; color: var(--text); cursor: pointer; }
+.pd-saved-chip:hover { background: var(--blue-light); border-color: var(--blue-border); color: var(--blue); }
+
+/* Fields */
+.pd-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
+.pd-field  { display: flex; flex-direction: column; gap: 4px; }
+.pd-label  { font-size: 11px; font-weight: 500; color: var(--text-sec); }
+.pd-input  { padding: 8px 10px; font-size: 13px; border: 1px solid var(--border-sec); border-radius: var(--radius-md); background: var(--white); color: var(--text); outline: none; }
+.pd-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(24,95,165,0.1); }
+.pd-input--err  { border-color: var(--red); }
+.pd-err { font-size: 11px; color: var(--red); }
+
+/* Right panel */
+.pd-fare-card, .pd-journey-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+.pd-fare-title, .pd-journey-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.pd-fare-row    { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: var(--text-sec); }
+.pd-fare-divider { height: 1px; background: var(--border); margin: 8px 0; }
+.pd-fare-total  { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; padding: 6px 0; }
+.pd-journey-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border); color: var(--text-sec); }
+.pd-journey-row:last-child { border-bottom: none; }
+.pd-journey-row span:last-child { font-weight: 600; color: var(--text); }
+.pd-confirm-btn { width: 100%; padding: 13px; background: linear-gradient(90deg, #1a7fe8, #185fa5); color: var(--white); border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(24,95,165,0.3); }
+.pd-confirm-btn:not(:disabled):hover { background: var(--blue-dark); }
+.pd-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }

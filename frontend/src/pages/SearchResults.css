@@ -1,0 +1,48 @@
+.sr-page  { min-height: 100vh; background: var(--bg); }
+.sr-topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 14px 24px; }
+.sr-topbar-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
+.sr-back { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 12px; font-size: 13px; color: var(--text-sec); }
+.sr-back:hover { background: var(--bg); }
+.sr-route-info { display: flex; flex-direction: column; gap: 2px; }
+.sr-route-main { font-size: 16px; font-weight: 700; }
+.sr-route-sub  { font-size: 12px; color: var(--text-sec); }
+.sr-body { max-width: 900px; margin: 0 auto; padding: 20px 24px; }
+.sr-state { text-align: center; padding: 40px; font-size: 14px; color: var(--text-sec); }
+.sr-state--error { color: var(--red); }
+.sr-empty { text-align: center; padding: 60px 20px; }
+.sr-empty-icon  { font-size: 48px; margin-bottom: 12px; }
+.sr-empty-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.sr-empty-sub   { font-size: 14px; color: var(--text-sec); }
+
+/* Train card */
+.sr-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+.sr-card-top { display: flex; align-items: center; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
+.sr-train-info { min-width: 160px; }
+.sr-train-name { font-size: 14px; font-weight: 700; }
+.sr-train-no   { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.sr-timing { display: flex; align-items: center; gap: 10px; flex: 1; }
+.sr-time-block { text-align: center; }
+.sr-time-block--right { text-align: right; }
+.sr-time { font-size: 20px; font-weight: 700; }
+.sr-stn  { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.sr-dur-block { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.sr-dur-line  { width: 100%; height: 1px; background: var(--border-sec); }
+.sr-dur       { font-size: 12px; color: var(--text-sec); }
+.sr-view-route { background: transparent; border: 1px solid var(--blue-border); color: var(--blue); border-radius: var(--radius-md); padding: 6px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.sr-view-route:hover { background: var(--blue-light); }
+
+/* Class chips */
+.sr-classes { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--border); }
+.sr-class-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 16px; border: 1.5px solid var(--blue-border);
+  border-radius: var(--radius-md); background: var(--blue-light);
+  cursor: pointer; gap: 2px; min-width: 90px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.sr-class-chip:hover { background: #cfe3f7; border-color: var(--blue); }
+.sr-class-chip--full { background: var(--bg-sec); border-color: var(--border); cursor: not-allowed; opacity: 0.6; }
+.sr-chip-type  { font-size: 14px; font-weight: 700; color: var(--blue); }
+.sr-chip-seats { font-size: 11px; color: var(--text-sec); }
+.sr-chip-fare  { font-size: 13px; font-weight: 600; color: var(--text); }
+.sr-class-chip--full .sr-chip-type { color: var(--text-ter); }

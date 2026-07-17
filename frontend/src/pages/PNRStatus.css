@@ -1,0 +1,42 @@
+.ps-page { min-height: 100vh; background: var(--bg); }
+.ps-body { max-width: 700px; margin: 0 auto; padding: 40px 24px; }
+.ps-hero { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 32px; margin-bottom: 24px; text-align: center; }
+.ps-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.ps-sub   { font-size: 14px; color: var(--text-sec); margin-bottom: 24px; }
+.ps-form  { display: flex; gap: 10px; max-width: 440px; margin: 0 auto; }
+.ps-input { flex: 1; padding: 11px 14px; font-size: 15px; border: 1.5px solid var(--border-sec); border-radius: var(--radius-md); outline: none; letter-spacing: 1px; font-weight: 600; text-align: center; }
+.ps-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.1); }
+.ps-btn   { padding: 11px 20px; background: var(--blue); color: var(--white); border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.ps-btn:hover { background: var(--blue-dark); }
+.ps-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ps-error { color: var(--red); font-size: 13px; margin-top: 12px; }
+
+/* Result */
+.ps-status-banner { padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+.ps-status-banner--confirmed { background: var(--green-bg); color: var(--green-text); }
+.ps-status-banner--cancelled { background: #fff7ed; color: #c2410c; }
+.ps-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-sm); }
+.ps-section { padding: 20px 24px; }
+.ps-section-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.ps-card-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.ps-train-name { font-size: 16px; font-weight: 700; }
+.ps-train-no   { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+.ps-pnr-block  { text-align: right; }
+.ps-pnr-label  { font-size: 11px; color: var(--text-sec); }
+.ps-pnr        { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+.ps-route { display: flex; align-items: center; gap: 16px; }
+.ps-stn-code  { font-size: 24px; font-weight: 700; }
+.ps-stn-name  { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.ps-stn-time  { font-size: 14px; font-weight: 600; color: var(--blue); margin-top: 4px; }
+.ps-stn-right { text-align: right; }
+.ps-route-mid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ps-route-line { width: 100%; height: 2px; background: var(--blue-border); }
+.ps-route-date { font-size: 12px; color: var(--text-sec); text-align: center; }
+.ps-divider    { height: 1px; background: var(--border); }
+.ps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ps-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--text-sec); padding: 6px 0 10px; border-bottom: 1px solid var(--border); }
+.ps-table td { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ps-table tr:last-child td { border-bottom: none; }
+.ps-fare-row   { display: flex; justify-content: space-between; align-items: center; }
+.ps-fare-label { font-size: 14px; color: var(--text-sec); }
+.ps-fare-val   { font-size: 18px; font-weight: 700; color: var(--blue); }
