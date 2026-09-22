@@ -1,8 +1,12 @@
-// Generates a unique 12-digit numeric PNR
+const crypto = require("crypto");
+
+// 12 random digits. Not derived from the clock: PNR lookup is a public
+// endpoint, so a timestamp-based value would let anyone walk the keyspace
+// and read other passengers' details. Callers retry on a UNIQUE collision.
 function generatePNR() {
-  const ts   = Date.now().toString().slice(-8);   // last 8 digits of timestamp
-  const rand = Math.floor(Math.random() * 9000 + 1000).toString(); // 4 digits
-  return (ts + rand).slice(0, 12);
+  let pnr = "";
+  for (let i = 0; i < 12; i++) pnr += crypto.randomInt(0, 10);
+  return pnr;
 }
 
 module.exports = { generatePNR };

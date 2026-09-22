@@ -1,53 +1,37 @@
 const db = require("../db");
 
+const SUGGESTION_LIMIT = 10;
+
+// GET /api/passengers/saved
+// Derived from booking history rather than a stored table: every field was
+// already a copy of something in seat_bookings, and a derived list cannot
+// drift from what the user actually booked.
 async function getSavedPassengers(req, res) {
   try {
     const [rows] = await db.query(
-      `SELECT saved_passenger_id, passenger_name, age, gender
-       FROM saved_passengers WHERE user_id = ?
-       ORDER BY created_at DESC`,
+      `SELECT sb.passenger_name, sb.age, sb.gender,
+              MAX(b.created_at) AS last_used
+         FROM seat_bookings sb
+         JOIN bookings b ON b.booking_id = sb.booking_id
+        WHERE b.user_id = ?
+        GROUP BY sb.passenger_name, sb.age, sb.gender
+        ORDER BY last_used DESC
+        LIMIT ${SUGGESTION_LIMIT}`,
       [req.user.user_id]
     );
-    res.json(rows);
+
+    res.json(
+      rows.map((r) => ({
+        id: `${r.passenger_name}|${r.age}|${r.gender ?? ""}`,
+        passenger_name: r.passenger_name,
+        age: r.age,
+        gender: r.gender,
+      }))
+    );
   } catch (err) {
     console.error("getSavedPassengers error:", err);
     res.status(500).json({ error: "Failed to fetch saved passengers." });
   }
 }
 
-async function addSavedPassenger(req, res) {
-  try {
-    const { passenger_name, age, gender } = req.body;
-    if (!passenger_name || !age)
-      return res.status(400).json({ error: "Name and age required." });
-
-    const [result] = await db.query(
-      `INSERT INTO saved_passengers (user_id, passenger_name, age, gender)
-       VALUES (?, ?, ?, ?)`,
-      [req.user.user_id, passenger_name, age, gender || null]
-    );
-    res.status(201).json({ saved_passenger_id: result.insertId, passenger_name, age, gender });
-  } catch (err) {
-    console.error("addSavedPassenger error:", err);
-    res.status(500).json({ error: "Failed to save passenger." });
-  }
-}
-
-async function deleteSavedPassenger(req, res) {
-  try {
-    const { id } = req.params;
-    const [result] = await db.query(
-      `DELETE FROM saved_passengers
-       WHERE saved_passenger_id = ? AND user_id = ?`,
-      [id, req.user.user_id]
-    );
-    if (!result.affectedRows)
-      return res.status(404).json({ error: "Passenger not found." });
-    res.json({ message: "Deleted." });
-  } catch (err) {
-    console.error("deleteSavedPassenger error:", err);
-    res.status(500).json({ error: "Failed to delete passenger." });
-  }
-}
-
-module.exports = { getSavedPassengers, addSavedPassenger, deleteSavedPassenger };
+module.exports = { getSavedPassengers };
