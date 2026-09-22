@@ -73,6 +73,15 @@ img, svg { max-width: 100%; height: auto; }
   padding: 0 var(--gutter);
 }
 
+/* "+1" marker on an arrival time that falls on a later calendar day. */
+.day-shift {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: #b45309;
+  vertical-align: super;
+  margin-left: 2px;
+}
+
 /* Wide tables (ticket, PNR) scroll rather than forcing the page wider. */
 .table-scroll {
   width: 100%;

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import SearchBox from "../components/SearchBox";
 import { getUserFromToken } from "../hooks/useAuth";
 import { api } from "../utils/api";
-import { formatDate, formatTime, departureDateTime } from "../utils/dates";
+import { formatDate, formatTime, departureDateTime, dayShift } from "../utils/dates";
 import "./HomePage.css";
 
 const POPULAR = [
@@ -78,7 +78,12 @@ export default function HomePage() {
                   </div>
                   <div className="hp-stn-right">
                     <div className="hp-stn-code">{b.dest_code}</div>
-                    <div className="hp-stn-time">{formatTime(b.arrival_time)}</div>
+                    <div className="hp-stn-time">
+                      {formatTime(b.arrival_time)}
+                      {dayShift(b.departure_day_offset, b.arrival_day_offset) && (
+                        <span className="day-shift">{dayShift(b.departure_day_offset, b.arrival_day_offset)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="hp-pnr-row">

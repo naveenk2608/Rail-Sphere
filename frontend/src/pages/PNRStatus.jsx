@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../utils/api";
-import { formatDate, formatTime } from "../utils/dates";
+import { formatDate, formatTime, stopDate, dayShift } from "../utils/dates";
 import "./PNRStatus.css";
 
 const PNR_LENGTH = 12;
@@ -30,6 +30,7 @@ export default function PNRStatus() {
   }
 
   const cancelled = booking?.booking_status === "CANCELLED";
+  const shift = booking ? dayShift(booking.departure_day_offset, booking.arrival_day_offset) : "";
 
   return (
     <div className="ps-page">
@@ -78,12 +79,17 @@ export default function PNRStatus() {
                   </div>
                   <div className="ps-route-mid">
                     <div className="ps-route-line" />
-                    <div className="ps-route-date">{fmtDate(booking.journey_date)}</div>
+                    <div className="ps-route-date">
+                      {fmtDate(stopDate(booking.journey_date, booking.departure_day_offset))}
+                    </div>
                   </div>
                   <div className="ps-stn-right">
                     <div className="ps-stn-code">{booking.dest_code}</div>
                     <div className="ps-stn-name">{booking.dest_name}</div>
-                    <div className="ps-stn-time">{formatTime(booking.arrival_time)}</div>
+                    <div className="ps-stn-time">
+                      {formatTime(booking.arrival_time)}
+                      {shift && <span className="day-shift">{shift}</span>}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -12,6 +12,10 @@ const pool = mysql.createPool({
   password:           process.env.DB_PASSWORD,
   database:           process.env.DB_NAME,
   ssl,
+  // Return DATE columns as 'YYYY-MM-DD' strings. Converted to JS Dates they
+  // become local midnight, which JSON-serialises to a UTC timestamp hours
+  // earlier — so a journey on the 23rd reaches the client reading as the 22nd.
+  dateStrings:        ["DATE"],
   waitForConnections: true,
   connectionLimit:    10,
   queueLimit:         0,

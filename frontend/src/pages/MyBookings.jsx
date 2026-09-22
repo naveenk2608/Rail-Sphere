@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
-import { formatDate, formatTime, departureDateTime } from "../utils/dates";
+import { formatDate, formatTime, departureDateTime, dayShift } from "../utils/dates";
 import "./MyBookings.css";
 
 const fmtDate = formatDate;
@@ -99,7 +99,12 @@ export default function MyBookings() {
                 </div>
                 <div className="mb-stn-right">
                   <div className="mb-stn-code">{b.dest_code}</div>
-                  <div className="mb-stn-time">{formatTime(b.arrival_time)}</div>
+                  <div className="mb-stn-time">
+                    {formatTime(b.arrival_time)}
+                    {dayShift(b.departure_day_offset, b.arrival_day_offset) && (
+                      <span className="day-shift">{dayShift(b.departure_day_offset, b.arrival_day_offset)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RouteModal from "../components/RouteModal";
 import { api } from "../utils/api";
-import { formatDate, formatTime, durationLabel, hasDeparted } from "../utils/dates";
+import { formatDate, formatTime, durationLabel, hasDeparted, dayShift } from "../utils/dates";
 import "./SearchResults.css";
 
 export default function SearchResults() {
@@ -106,7 +106,14 @@ export default function SearchResults() {
                     </div>
                   </div>
                   <div className="sr-time-block sr-time-block--right">
-                    <div className="sr-time">{formatTime(train.arrival_time)}</div>
+                    <div className="sr-time">
+                      {formatTime(train.arrival_time)}
+                      {dayShift(train.departure_day_offset, train.arrival_day_offset) && (
+                        <span className="day-shift">
+                          {dayShift(train.departure_day_offset, train.arrival_day_offset)}
+                        </span>
+                      )}
+                    </div>
                     <div className="sr-stn">{toCode}</div>
                   </div>
                 </div>

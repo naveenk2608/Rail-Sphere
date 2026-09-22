@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Toast from "../components/Toast";
 import { api } from "../utils/api";
-import { formatDate, formatTime } from "../utils/dates";
+import { formatDate, formatTime, stopDate, dayShift } from "../utils/dates";
 import "./Ticket.css";
 
 function fmtDate(d) {
@@ -53,6 +53,9 @@ export default function Ticket() {
   if (!booking) return null;
 
   const cancelled = booking.booking_status === "CANCELLED";
+  const departsOn = stopDate(booking.journey_date, booking.departure_day_offset);
+  const arrivesOn = stopDate(booking.journey_date, booking.arrival_day_offset);
+  const shift = dayShift(booking.departure_day_offset, booking.arrival_day_offset);
 
   return (
     <div className="tk-page">
@@ -98,16 +101,21 @@ export default function Ticket() {
               <div className="tk-stn-code">{booking.source_code}</div>
               <div className="tk-stn-name">{booking.source_name}</div>
               <div className="tk-stn-time">{formatTime(booking.departure_time)}</div>
+              <div className="tk-stn-date">{fmtDate(departsOn)}</div>
             </div>
             <div className="tk-route-mid">
               <div className="tk-route-line" />
               <div className="tk-route-train">{booking.train_number} · {booking.train_name}</div>
-              <div className="tk-route-date">{fmtDate(booking.journey_date)}</div>
+              <div className="tk-route-date">{booking.coach_type}</div>
             </div>
             <div className="tk-route-stn tk-route-stn--right">
               <div className="tk-stn-code">{booking.dest_code}</div>
               <div className="tk-stn-name">{booking.dest_name}</div>
-              <div className="tk-stn-time">{formatTime(booking.arrival_time)}</div>
+              <div className="tk-stn-time">
+                {formatTime(booking.arrival_time)}
+                {shift && <span className="day-shift">{shift}</span>}
+              </div>
+              <div className="tk-stn-date">{fmtDate(arrivesOn)}</div>
             </div>
           </div>
 

@@ -29,6 +29,7 @@
 .tk-stn-code { font-size: var(--fs-3xl); font-weight: 700; color: var(--text); }
 .tk-stn-name { font-size: var(--fs-xs); color: var(--text-sec); margin-top: 2px; }
 .tk-stn-time { font-size: var(--fs-base); font-weight: 600; color: var(--blue); margin-top: 4px; }
+.tk-stn-date { font-size: var(--fs-xs); color: var(--text-sec); margin-top: 2px; }
 .tk-route-mid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tk-route-line  { width: 100%; height: 2px; background: var(--blue-border); }
 .tk-route-train { font-size: var(--fs-xs); font-weight: 600; color: var(--text); }

@@ -4,9 +4,22 @@
 
 export function parseLocalDate(value) {
   if (!value) return null;
-  const [y, m, d] = String(value).slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const date = new Date(y, m - 1, d);
+  // Copy, so callers that shift the result don't mutate the caller's Date.
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : new Date(value.getTime());
+
+  const str = String(value);
+
+  // A bare calendar date carries no timezone, so build it from components.
+  const bare = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if (bare) {
+    const date = new Date(Number(bare[1]), Number(bare[2]) - 1, Number(bare[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  // A full timestamp is a real instant — let Date parse it and read it back
+  // in local time. Slicing the first 10 characters would read the UTC day,
+  // which is a day early anywhere ahead of UTC.
+  const date = new Date(str);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -35,6 +48,21 @@ export function departureDateTime(journeyDate, time, dayOffset = 0) {
   date.setDate(date.getDate() + (dayOffset || 0));
   date.setHours(h || 0, m || 0, s || 0, 0);
   return date;
+}
+
+// Calendar date on which a stop is reached. journey_date is the train's run
+// date at its origin; each stop's day offset is relative to that.
+export function stopDate(journeyDate, dayOffset = 0) {
+  const date = parseLocalDate(journeyDate);
+  if (!date) return null;
+  date.setDate(date.getDate() + (dayOffset || 0));
+  return date;
+}
+
+// "+1"-style marker for arriving on a later calendar day than departure.
+export function dayShift(departureOffset = 0, arrivalOffset = 0) {
+  const diff = (arrivalOffset || 0) - (departureOffset || 0);
+  return diff > 0 ? `+${diff}` : "";
 }
 
 export function hasDeparted(journeyDate, time, dayOffset = 0) {
