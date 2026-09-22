@@ -9,14 +9,14 @@
   position: absolute;
   top: calc(100% + 2px);
   left: 0;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--text-ter);
   background: var(--white);
   z-index: 250;
 }
-.si-label    { font-size: 11px; color: var(--text-sec); }
+.si-label    { font-size: var(--fs-2xs); color: var(--text-sec); }
 .si-input    {
-  padding: 8px 10px; font-size: 13px;
+  padding: 8px 10px; font-size: var(--fs-sm);
   border: 1px solid var(--border-sec); border-radius: var(--radius-md);
   background: var(--white); color: var(--text); outline: none; width: 100%;
 }
@@ -31,7 +31,7 @@
 .si-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; border-radius: var(--radius-sm);
-  cursor: pointer; font-size: 13px;
+  cursor: pointer; font-size: var(--fs-sm);
 }
 .si-item:hover { background: var(--blue-light); }
 .si-code { font-weight: 700; color: var(--blue); min-width: 44px; }

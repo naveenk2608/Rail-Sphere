@@ -1,9 +1,13 @@
 # Ignore node_modules in both subdirectories
 **/node_modules/
 
+# Build output
+frontend/dist/
+
 # Ignore environment files specifically
 backend/.env
 frontend/.env
+*.env.local
 
 # Ignore OS and Editor files
 .DS_Store

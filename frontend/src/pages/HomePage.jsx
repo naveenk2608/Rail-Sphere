@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import SearchBox from "../components/SearchBox";
 import { getUserFromToken } from "../hooks/useAuth";
 import { api } from "../utils/api";
+import { formatDate, formatTime, departureDateTime } from "../utils/dates";
 import "./HomePage.css";
 
 const POPULAR = [
@@ -12,9 +13,7 @@ const POPULAR = [
   { fromId: null, toId: null, from: "VSKP", to: "HWH",  fromName: "Visakhapatnam", toName: "Howrah",        duration: "11h", fare: 490 },
 ];
 
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
+const fmtDate = formatDate;
 
 export default function HomePage() {
   const user     = getUserFromToken();
@@ -22,12 +21,22 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!user) return;
-    api.getMyBookings()
-      .then((data) => setBookings(data.slice(0, 2)))
-      .catch(() => {});
+    api.getMyBookings().then(setBookings).catch(() => {});
+    // `user` is derived from localStorage on each render, so it is not a
+    // stable dependency; Navbar remounts this page on auth change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const upcoming  = bookings.filter((b) => new Date(b.journey_date) >= new Date() && b.booking_status === "CONFIRMED");
+  // Filter before slicing, and compare against departure time rather than
+  // midnight, so a train leaving later today still counts as upcoming.
+  const now = new Date();
+  const upcoming = bookings
+    .filter((b) => b.booking_status === "CONFIRMED")
+    .map((b) => ({ b, at: departureDateTime(b.journey_date, b.departure_time, b.departure_day_offset) }))
+    .filter(({ at }) => at && at >= now)
+    .sort((x, y) => x.at - y.at)
+    .slice(0, 2)
+    .map(({ b }) => b);
   const showCards = upcoming.length > 0;
 
   return (
@@ -61,7 +70,7 @@ export default function HomePage() {
                 <div className="hp-route">
                   <div>
                     <div className="hp-stn-code">{b.source_code}</div>
-                    <div className="hp-stn-time">{b.departure_time?.slice(0,5)} · {fmtDate(b.journey_date)}</div>
+                    <div className="hp-stn-time">{formatTime(b.departure_time)} · {fmtDate(b.journey_date)}</div>
                   </div>
                   <div className="hp-route-mid">
                     <div className="hp-route-bar" />
@@ -69,7 +78,7 @@ export default function HomePage() {
                   </div>
                   <div className="hp-stn-right">
                     <div className="hp-stn-code">{b.dest_code}</div>
-                    <div className="hp-stn-time">{b.arrival_time?.slice(0,5)}</div>
+                    <div className="hp-stn-time">{formatTime(b.arrival_time)}</div>
                   </div>
                 </div>
                 <div className="hp-pnr-row">

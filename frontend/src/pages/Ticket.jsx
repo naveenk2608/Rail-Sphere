@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Toast from "../components/Toast";
 import { api } from "../utils/api";
+import { formatDate, formatTime } from "../utils/dates";
 import "./Ticket.css";
 
 function fmtDate(d) {
-  return new Date(d).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return formatDate(d, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function Ticket() {
@@ -96,7 +97,7 @@ export default function Ticket() {
             <div className="tk-route-stn">
               <div className="tk-stn-code">{booking.source_code}</div>
               <div className="tk-stn-name">{booking.source_name}</div>
-              <div className="tk-stn-time">{booking.departure_time?.slice(0,5)}</div>
+              <div className="tk-stn-time">{formatTime(booking.departure_time)}</div>
             </div>
             <div className="tk-route-mid">
               <div className="tk-route-line" />
@@ -106,7 +107,7 @@ export default function Ticket() {
             <div className="tk-route-stn tk-route-stn--right">
               <div className="tk-stn-code">{booking.dest_code}</div>
               <div className="tk-stn-name">{booking.dest_name}</div>
-              <div className="tk-stn-time">{booking.arrival_time?.slice(0,5)}</div>
+              <div className="tk-stn-time">{formatTime(booking.arrival_time)}</div>
             </div>
           </div>
 
@@ -115,6 +116,7 @@ export default function Ticket() {
           {/* Passenger table */}
           <div className="tk-pax-section">
             <div className="tk-pax-title">Passenger details</div>
+            <div className="table-scroll">
             <table className="tk-table">
               <thead>
                 <tr>
@@ -134,6 +136,7 @@ export default function Ticket() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           <div className="tk-divider-dashed" />

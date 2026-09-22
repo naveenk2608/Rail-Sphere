@@ -1,50 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getUserFromToken } from "../hooks/useAuth";
 import { api } from "../utils/api";
-import { calculateFare, formatFare } from "../utils/fareCalculator";
+import { calculateFare, formatFare, loadClassConfig } from "../utils/fareCalculator";
 import "./SeatMap.css";
 
 const MAX_SEATS = 5;
 
-// Build seat layout: rows of { left: seatNo, right: [seatNo, seatNo, seatNo] }
-function buildLayout(total) {
+// Indian coaches are laid out as a main bay plus a shorter side bay:
+// 8 across is 6 + 2, 6 across is 4 + 2, 4 across has no side berths.
+function buildLayout(total, perRow = 8) {
+  const main = perRow >= 8 ? 6 : perRow >= 6 ? 4 : perRow;
+  const side = Math.max(0, perRow - main);
+
   const rows = [];
   let seat = 1;
   while (seat <= total) {
-    const left  = seat;
-    const right = [seat + 1, seat + 2, seat + 3].filter((s) => s <= total);
-    rows.push({ left, right });
-    seat += 4;
+    const mainSeats = [];
+    for (let i = 0; i < main && seat <= total; i++) mainSeats.push(seat++);
+    const sideSeats = [];
+    for (let i = 0; i < side && seat <= total; i++) sideSeats.push(seat++);
+    rows.push({ key: mainSeats[0], main: mainSeats, side: sideSeats });
   }
   return rows;
 }
 
 export default function SeatMap() {
-  const [params]  = useSearchParams();
-  const navigate  = useNavigate();
-  const user      = getUserFromToken();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const user = getUserFromToken();
 
   const trainId     = params.get("trainId");
   const trainName   = params.get("trainName");
   const trainNumber = params.get("trainNumber");
   const coachType   = params.get("coachType");
   const date        = params.get("date");
-  const fromId      = params.get("fromId");
-  const toId        = params.get("toId");
+  const distance    = Number(params.get("distance"));
   const fromSeq     = Number(params.get("fromSeq"));
   const toSeq       = Number(params.get("toSeq"));
-  const distance    = Number(params.get("distance"));
   const fromCode    = params.get("fromCode");
   const toCode      = params.get("toCode");
-  const dep         = params.get("dep");
-  const arr         = params.get("arr");
 
-  const [coaches,      setCoaches]      = useState([]);
-  const [activeCoach,  setActiveCoach]  = useState(null);
-  const [bookedSeats,  setBookedSeats]  = useState([]);
-  const [selectedSeats,setSelectedSeats]= useState([]); // [{ coach_id, coach_number, seat_no }]
-  const [loading,      setLoading]      = useState(true);
+  const [coaches,       setCoaches]       = useState([]);
+  const [activeCoach,   setActiveCoach]   = useState(null);
+  const [bookedSeats,   setBookedSeats]   = useState([]);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [config,        setConfig]        = useState(null);
+  const [loading,       setLoading]       = useState(true);
+  const [seatsLoading,  setSeatsLoading]  = useState(false);
+  const seatRequestRef = useRef(0);
+
+  useEffect(() => {
+    loadClassConfig().then(setConfig).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.getCoaches(trainId, coachType)
@@ -53,46 +61,82 @@ export default function SeatMap() {
       .finally(() => setLoading(false));
   }, [trainId, coachType]);
 
+  // Guard against out-of-order responses: switching coaches quickly could
+  // otherwise leave the previous coach's booked seats on screen.
   useEffect(() => {
     if (!activeCoach) return;
+    const requestId = ++seatRequestRef.current;
+    setSeatsLoading(true);
+    setBookedSeats([]);
+
     api.getBookedSeats(trainId, activeCoach.coach_id, date, fromSeq, toSeq)
-      .then(setBookedSeats)
-      .catch(() => {});
-  }, [activeCoach]);
+      .then((data) => { if (seatRequestRef.current === requestId) setBookedSeats(data); })
+      .catch(() => {})
+      .finally(() => { if (seatRequestRef.current === requestId) setSeatsLoading(false); });
+  }, [activeCoach, trainId, date, fromSeq, toSeq]);
+
+  function isSelected(coachId, seatNo) {
+    return selectedSeats.some((s) => s.coach_id === coachId && s.seat_no === seatNo);
+  }
 
   function toggleSeat(seatNo) {
-    const alreadySelected = selectedSeats.find(
-      (s) => s.coach_id === activeCoach.coach_id && s.seat_no === seatNo
-    );
-    if (alreadySelected) {
-      setSelectedSeats(selectedSeats.filter((s) => !(s.coach_id === activeCoach.coach_id && s.seat_no === seatNo)));
+    if (!activeCoach || seatsLoading) return;
+    const coachId = activeCoach.coach_id;
+
+    if (isSelected(coachId, seatNo)) {
+      setSelectedSeats(selectedSeats.filter((s) => !(s.coach_id === coachId && s.seat_no === seatNo)));
       return;
     }
     if (selectedSeats.length >= MAX_SEATS) return;
     if (bookedSeats.includes(seatNo)) return;
-    setSelectedSeats([...selectedSeats, { coach_id: activeCoach.coach_id, coach_number: activeCoach.coach_number, seat_no: seatNo }]);
+
+    setSelectedSeats([...selectedSeats, {
+      coach_id: coachId,
+      coach_number: activeCoach.coach_number,
+      seat_no: seatNo,
+    }]);
   }
 
-  function getSeatState(seatNo) {
+  function seatState(seatNo) {
     if (bookedSeats.includes(seatNo)) return "booked";
-    if (selectedSeats.find((s) => s.coach_id === activeCoach.coach_id && s.seat_no === seatNo)) return "selected";
+    if (activeCoach && isSelected(activeCoach.coach_id, seatNo)) return "selected";
     return "available";
   }
 
   function handleContinue() {
     if (!selectedSeats.length) return;
+
+    const next = new URLSearchParams(params);
+    next.set("seats", JSON.stringify(selectedSeats));
+    const target = `/passengers?${next.toString()}`;
+
     if (!user) {
-      sessionStorage.setItem("bookingProgress", JSON.stringify({
-        returnPath: `/passengers?${params.toString()}&seats=${encodeURIComponent(JSON.stringify(selectedSeats))}`,
-      }));
-      navigate(`/login?returnTo=/seats?${params.toString()}`);
+      sessionStorage.setItem("bookingProgress", JSON.stringify({ returnPath: target }));
+      navigate(`/login?returnTo=${encodeURIComponent(`/seats?${params.toString()}`)}`);
       return;
     }
-    navigate(`/passengers?trainId=${trainId}&trainName=${encodeURIComponent(trainName)}&trainNumber=${trainNumber}&coachType=${coachType}&date=${date}&fromId=${fromId}&toId=${toId}&fromSeq=${fromSeq}&toSeq=${toSeq}&distance=${distance}&fromCode=${fromCode}&toCode=${toCode}&dep=${encodeURIComponent(dep)}&arr=${encodeURIComponent(arr)}&seats=${encodeURIComponent(JSON.stringify(selectedSeats))}`);
+    navigate(target);
   }
 
-  const fare = calculateFare(distance, coachType, selectedSeats.length || 1);
-  const layout = activeCoach ? buildLayout(activeCoach.total_seats) : [];
+  const fare = calculateFare(config, distance, coachType, selectedSeats.length || 1);
+  const layout = activeCoach
+    ? buildLayout(activeCoach.total_seats, activeCoach.seats_per_row)
+    : [];
+
+  function renderSeat(seatNo) {
+    const state = seatState(seatNo);
+    return (
+      <button
+        key={seatNo}
+        className={`sm-seat sm-seat--${state}`}
+        onClick={() => toggleSeat(seatNo)}
+        disabled={state === "booked"}
+        aria-label={`Seat ${seatNo}, ${state}`}
+      >
+        {seatNo}
+      </button>
+    );
+  }
 
   return (
     <div className="sm-page">
@@ -105,22 +149,20 @@ export default function SeatMap() {
       </div>
 
       <div className="sm-body">
-        {/* Coach tabs */}
         {loading ? <div className="sm-loading">Loading coaches…</div> : (
           <>
             <div className="sm-coach-tabs">
-              {coaches.map((c) => (
-                <button key={c.coach_id}
-                  className={`sm-coach-tab ${activeCoach?.coach_id === c.coach_id ? "sm-coach-tab--active" : ""}`}
-                  onClick={() => setActiveCoach(c)}>
-                  {c.coach_number}
-                  {selectedSeats.filter((s) => s.coach_id === c.coach_id).length > 0 && (
-                    <span className="sm-coach-badge">
-                      {selectedSeats.filter((s) => s.coach_id === c.coach_id).length}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {coaches.map((c) => {
+                const count = selectedSeats.filter((s) => s.coach_id === c.coach_id).length;
+                return (
+                  <button key={c.coach_id}
+                    className={`sm-coach-tab ${activeCoach?.coach_id === c.coach_id ? "sm-coach-tab--active" : ""}`}
+                    onClick={() => setActiveCoach(c)}>
+                    {c.coach_number}
+                    {count > 0 && <span className="sm-coach-badge">{count}</span>}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="sm-legend">
@@ -129,36 +171,22 @@ export default function SeatMap() {
               <span><span className="sm-leg-dot sm-leg-dot--booked" /> Booked</span>
             </div>
 
-            {/* Seat grid */}
-            <div className="sm-coach-label">{activeCoach?.coach_number} — {coachType}</div>
+            <div className="sm-coach-label">
+              {activeCoach?.coach_number} — {coachType}
+              {seatsLoading && <span className="sm-coach-loading"> · checking availability…</span>}
+            </div>
+
             <div className="sm-grid-wrapper">
               <div className="sm-grid">
-                <div className="sm-grid-header">
-                  <span>Window</span>
-                  <span className="sm-aisle-label">← Aisle →</span>
-                  <span>Middle · Aisle · Window</span>
-                </div>
-                {layout.map(({ left, right }) => (
-                  <div key={left} className="sm-row">
-                    <button
-                      className={`sm-seat sm-seat--${getSeatState(left)}`}
-                      onClick={() => getSeatState(left) !== "booked" && toggleSeat(left)}
-                      disabled={getSeatState(left) === "booked"}
-                    >
-                      {left}
-                    </button>
-                    <div className="sm-aisle" />
-                    <div className="sm-right-group">
-                      {right.map((sn) => (
-                        <button key={sn}
-                          className={`sm-seat sm-seat--${getSeatState(sn)}`}
-                          onClick={() => getSeatState(sn) !== "booked" && toggleSeat(sn)}
-                          disabled={getSeatState(sn) === "booked"}
-                        >
-                          {sn}
-                        </button>
-                      ))}
-                    </div>
+                {layout.map((row) => (
+                  <div key={row.key} className="sm-row">
+                    <div className="sm-main-group">{row.main.map(renderSeat)}</div>
+                    {row.side.length > 0 && (
+                      <>
+                        <div className="sm-aisle" />
+                        <div className="sm-side-group">{row.side.map(renderSeat)}</div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -167,7 +195,6 @@ export default function SeatMap() {
         )}
       </div>
 
-      {/* Bottom bar */}
       <div className="sm-bottom">
         <div className="sm-bottom-inner">
           <div className="sm-selected-info">
@@ -176,7 +203,7 @@ export default function SeatMap() {
               : <div className="sm-sel-chips">
                   {selectedSeats.map((s) => (
                     <span key={`${s.coach_id}-${s.seat_no}`} className="sm-sel-chip">
-                      {s.coach_number}·{s.seat_no} ×
+                      {s.coach_number}·{s.seat_no}
                     </span>
                   ))}
                 </div>
@@ -185,7 +212,8 @@ export default function SeatMap() {
               <div className="sm-fare">{formatFare(fare.total)} total</div>
             )}
           </div>
-          <button className="sm-continue-btn" onClick={handleContinue} disabled={selectedSeats.length === 0}>
+          <button className="sm-continue-btn" onClick={handleContinue}
+            disabled={selectedSeats.length === 0}>
             Continue ({selectedSeats.length}) →
           </button>
         </div>

@@ -14,7 +14,10 @@ import Ticket from "./pages/Ticket";
 
 function RequireAuth({ children }) {
   const user = getUserFromToken();
-  if (!user) return <Navigate to={`/login?returnTo=${window.location.pathname + window.location.search}`} replace />;
+  if (!user) {
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
+  }
   return children;
 }
 

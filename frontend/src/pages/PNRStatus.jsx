@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { api } from "../utils/api";
+import { formatDate, formatTime } from "../utils/dates";
 import "./PNRStatus.css";
 
+const PNR_LENGTH = 12;
+
 function fmtDate(d) {
-  return new Date(d).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return formatDate(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 export default function PNRStatus() {
@@ -14,7 +17,7 @@ export default function PNRStatus() {
 
   async function handleSearch(e) {
     e.preventDefault();
-    if (pnr.trim().length < 10) { setError("Enter a valid 12-digit PNR."); return; }
+    if (pnr.trim().length !== PNR_LENGTH) { setError(`Enter a valid ${PNR_LENGTH}-digit PNR.`); return; }
     setError(""); setBooking(null); setLoading(true);
     try {
       const data = await api.getByPNR(pnr.trim());
@@ -37,8 +40,8 @@ export default function PNRStatus() {
 
           <form className="ps-form" onSubmit={handleSearch}>
             <input className="ps-input" placeholder="Enter 12-digit PNR"
-              value={pnr} onChange={(e) => setPnr(e.target.value.replace(/\D/g, "").slice(0, 12))}
-              maxLength={12} inputMode="numeric" />
+              value={pnr} onChange={(e) => setPnr(e.target.value.replace(/\D/g, "").slice(0, PNR_LENGTH))}
+              maxLength={PNR_LENGTH} inputMode="numeric" />
             <button className="ps-btn" type="submit" disabled={loading}>
               {loading ? "Checking…" : "Check Status"}
             </button>
@@ -71,7 +74,7 @@ export default function PNRStatus() {
                   <div>
                     <div className="ps-stn-code">{booking.source_code}</div>
                     <div className="ps-stn-name">{booking.source_name}</div>
-                    <div className="ps-stn-time">{booking.departure_time?.slice(0,5)}</div>
+                    <div className="ps-stn-time">{formatTime(booking.departure_time)}</div>
                   </div>
                   <div className="ps-route-mid">
                     <div className="ps-route-line" />
@@ -80,7 +83,7 @@ export default function PNRStatus() {
                   <div className="ps-stn-right">
                     <div className="ps-stn-code">{booking.dest_code}</div>
                     <div className="ps-stn-name">{booking.dest_name}</div>
-                    <div className="ps-stn-time">{booking.arrival_time?.slice(0,5)}</div>
+                    <div className="ps-stn-time">{formatTime(booking.arrival_time)}</div>
                   </div>
                 </div>
               </div>
@@ -90,6 +93,7 @@ export default function PNRStatus() {
               {/* Passengers */}
               <div className="ps-section">
                 <div className="ps-section-title">Passenger details</div>
+                <div className="table-scroll">
                 <table className="ps-table">
                   <thead>
                     <tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Coach</th><th>Seat</th></tr>
@@ -107,6 +111,7 @@ export default function PNRStatus() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
 
               <div className="ps-divider" />

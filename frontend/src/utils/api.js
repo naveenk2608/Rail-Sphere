@@ -15,40 +15,52 @@ async function request(method, path, body) {
     headers: { "Content-Type": "application/json", ...authHeaders() },
   };
   if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(BASE + path, opts);
-  const data = await res.json();
+
+  const res = await fetch(BASE + path, opts);
+
+  // A gateway error or cold-start page is HTML, not JSON — don't let the
+  // parse failure surface as an unrelated SyntaxError.
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) throw new Error(`Server error (${res.status}). Please try again.`);
+    throw new Error("Unexpected response from server.");
+  }
+
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
 
 export const api = {
-  // Auth
-  register: (body)           => request("POST", "/auth/register", body),
-  login:    (body)           => request("POST", "/auth/login", body),
+  register: (body) => request("POST", "/auth/register", body),
+  login:    (body) => request("POST", "/auth/login", body),
 
-  // Stations
-  searchStations: (q)        => request("GET", `/stations/search?q=${encodeURIComponent(q)}`),
+  searchStations: (q) => request("GET", `/stations/search?q=${encodeURIComponent(q)}`),
 
-  // Trains
-  searchTrains: (p)          => request("GET",
-    `/trains/search?fromId=${p.fromId}&toId=${p.toId}&date=${p.date}&class=${p.cls || "ALL"}`),
-  getCoaches:   (trainId, cls) => request("GET", `/trains/${trainId}/coaches?class=${cls}`),
+  getClasses: () => request("GET", "/trains/classes"),
+  searchTrains: (p) =>
+    request("GET",
+      `/trains/search?fromId=${encodeURIComponent(p.fromId)}&toId=${encodeURIComponent(p.toId)}` +
+      `&date=${encodeURIComponent(p.date)}&class=${encodeURIComponent(p.cls || "ALL")}`),
+  getCoaches: (trainId, cls) =>
+    request("GET", `/trains/${trainId}/coaches?class=${encodeURIComponent(cls)}`),
   getBookedSeats: (trainId, coachId, date, fromSeq, toSeq) =>
-    request("GET", `/trains/${trainId}/seats?coachId=${coachId}&date=${date}&fromSeq=${fromSeq}&toSeq=${toSeq}`),
-  getTrainRoute: (trainId)   => request("GET", `/trains/${trainId}/route`),
+    request("GET",
+      `/trains/${trainId}/seats?coachId=${encodeURIComponent(coachId)}&date=${encodeURIComponent(date)}` +
+      `&fromSeq=${encodeURIComponent(fromSeq)}&toSeq=${encodeURIComponent(toSeq)}`),
+  getTrainRoute: (trainId) => request("GET", `/trains/${trainId}/route`),
   getFare: (distance, cls, passengers) =>
-    request("GET", `/trains/fare?distance=${distance}&class=${cls}&passengers=${passengers}`),
+    request("GET",
+      `/trains/fare?distance=${encodeURIComponent(distance)}&class=${encodeURIComponent(cls)}` +
+      `&passengers=${encodeURIComponent(passengers)}`),
 
-  // Bookings
-  createBooking:  (body)     => request("POST", "/bookings", body),
-  getMyBookings:  ()         => request("GET",  "/bookings/my"),
-  getBookingById: (id)       => request("GET",  `/bookings/${id}`),
-  getByPNR:       (pnr)      => request("GET",  `/bookings/pnr/${pnr}`),
-  cancelBooking:  (id)       => request("PATCH", `/bookings/${id}/cancel`),
-  emailTicket:    (id)       => request("POST",  `/bookings/${id}/email`),
+  createBooking:  (body) => request("POST",  "/bookings", body),
+  getMyBookings:  ()     => request("GET",   "/bookings/my"),
+  getBookingById: (id)   => request("GET",   `/bookings/${id}`),
+  getByPNR:       (pnr)  => request("GET",   `/bookings/pnr/${encodeURIComponent(pnr)}`),
+  cancelBooking:  (id)   => request("PATCH", `/bookings/${id}/cancel`),
+  emailTicket:    (id)   => request("POST",  `/bookings/${id}/email`),
 
-  // Saved passengers
-  getSavedPassengers:    ()   => request("GET",    "/passengers/saved"),
-  addSavedPassenger:     (b)  => request("POST",   "/passengers/saved", b),
-  deleteSavedPassenger:  (id) => request("DELETE", `/passengers/saved/${id}`),
+  getSavedPassengers: () => request("GET", "/passengers/saved"),
 };

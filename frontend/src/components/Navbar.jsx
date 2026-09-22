@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserFromToken } from "../hooks/useAuth";
 import { api } from "../utils/api";
+import { departureDateTime } from "../utils/dates";
 import "./Navbar.css";
 
 function buildNotifications(bookings) {
@@ -11,15 +12,10 @@ function buildNotifications(bookings) {
   for (const b of bookings) {
     if (b.booking_status === "CANCELLED") continue;
 
-    const d = new Date(b.journey_date);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const timePart = b.departure_time || "00:00:00";
-    const departureDateTime = new Date(`${y}-${m}-${day}T${timePart}`);
+    const departsAt = departureDateTime(b.journey_date, b.departure_time, b.departure_day_offset);
+    if (!departsAt) continue;
 
-    const hoursUntil = (departureDateTime - now) / (1000 * 60 * 60);
-
+    const hoursUntil = (departsAt - now) / (1000 * 60 * 60);
     if (hoursUntil > 0 && hoursUntil <= 24) {
       const hrsLabel = hoursUntil < 1
         ? `${Math.round(hoursUntil * 60)} min`
@@ -28,12 +24,12 @@ function buildNotifications(bookings) {
         id: `dep-${b.booking_id}`,
         icon: "🚆",
         text: `${b.train_name} departs from ${b.source_code} in ${hrsLabel}`,
-        departureDateTime,
+        departsAt,
       });
     }
   }
 
-  return notifs.sort((a, b) => a.departureDateTime - b.departureDateTime);
+  return notifs.sort((a, b) => a.departsAt - b.departsAt);
 }
 
 export default function Navbar({ onAuthChange }) {

@@ -21,7 +21,7 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 - 💾 **Saved Passengers** — Save frequent passenger details for faster checkout
 - 🔐 **JWT Authentication** — Signup/login with hashed passwords (bcrypt) and protected routes
 - 💰 **Fare Calculation** — Distance-based fare lookup per coach class
-- 📱 **Responsive UI** — Built with plain CSS per component, no UI framework
+- 📱 **Responsive UI** — Plain CSS per component, no UI framework; rem-based type scale and breakpoints at 900 / 768 / 560 / 480px
 
 ---
 
@@ -31,7 +31,7 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 |---|---|
 | **Frontend** | React 18, Vite, React Router |
 | **Backend** | Node.js, Express.js |
-| **Database** | MySQL (11-table relational schema) |
+| **Database** | MySQL (8-table relational schema) |
 | **Auth** | JWT + bcrypt |
 | **Email** | Nodemailer |
 | **Deployment** | Frontend → Vercel · Backend → Render |
@@ -40,15 +40,17 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 
 ## 🗄️ Database Schema
 
-An 11-table normalized MySQL schema (`schema.sql`) models the full booking domain:
+An 8-table MySQL schema (`schema.sql`) models the booking domain:
 
-`users` · `saved_passengers` · `stations` · `trains` · `train_run_days` · `train_routes` · `coaches` · `bookings` · `seat_bookings` · `booking_passengers` · `passenger_seat_map`
+`users` · `stations` · `trains` · `train_run_days` · `train_routes` · `coaches` · `bookings` · `seat_bookings`
 
 Key design points:
-- **`train_routes`** stores each stop's sequence, arrival/departure time, and distance from origin — the basis for route-based fare and availability logic.
-- **`seat_bookings`** stores `from_seq`/`to_seq` per seat per journey date, so overlapping-segment availability can be computed instead of blocking the whole seat for the entire route.
-- **`train_run_days`** encodes which days of the week a train runs.
-- **`passenger_seat_map`** links individual passengers to their specific allotted seat within a booking.
+- **`train_routes`** stores each stop's sequence, arrival/departure time, day offset, and distance from origin — the basis for route-based fare and availability logic. The day offset lets a journey span more than one calendar day.
+- **`seat_bookings`** is one row per passenger, per seat, per route segment. Storing `from_seq`/`to_seq` lets overlapping-segment availability be computed instead of blocking a seat for the whole route, and `idx_availability` covers that lookup.
+- **`train_run_days`** encodes which days of the week a train runs, keyed on `(train_id, day_of_week)`.
+- Passengers live on `seat_bookings` rather than in separate tables. The relationship is strictly one passenger to one seat, so splitting them produced a cartesian product and no benefit.
+- Saved-passenger suggestions are **derived** from booking history rather than stored, so they cannot drift from what was actually booked.
+- Coach class reference data (fare rate per km, label, seat layout, reservation charge, GST) lives in `backend/config/coach-classes.json`, served to the frontend via `/api/trains/classes` so it has exactly one home.
 
 ---
 
@@ -74,9 +76,12 @@ Rail-Sphere/
 │   │   └── trainRoutes.js          # /api/trains
 │   ├── middleware/
 │   │   └── authMiddleware.js       # JWT verification
+│   ├── config/
+│   │   ├── coach-classes.json      # Fare rates, labels, seat layout
+│   │   └── coachClasses.js         # Loader + fare calculation
 │   └── utils/
 │       ├── mailer.js               # Nodemailer email sending
-│       └── pnrGenerator.js         # Unique PNR generation
+│       └── pnrGenerator.js         # Random PNR generation
 └── frontend/
     ├── vite.config.js
     ├── index.html
@@ -101,13 +106,14 @@ Rail-Sphere/
         │   ├── Login.jsx / Signup.jsx
         │   └── Auth.css
         ├── hooks/
-        │   ├── useAuth.js
+        │   ├── useAuth.js           # Decodes the JWT for display
         │   └── useDebounce.js
         ├── utils/
-        │   ├── api.js               # Axios/fetch wrapper
-        │   └── fareCalculator.js
+        │   ├── api.js               # fetch wrapper
+        │   ├── dates.js             # Timezone-safe date helpers
+        │   └── fareCalculator.js    # Fare preview from server config
         └── styles/
-            └── global.css
+            └── global.css           # Design tokens, type scale, breakpoints
 ```
 
 ---
@@ -120,6 +126,7 @@ Rail-Sphere/
 | `/api/auth/login` | POST | — | Login, returns JWT |
 | `/api/stations/search` | GET | — | Search stations by name/code |
 | `/api/trains/search` | GET | — | Search trains between two stations for a date |
+| `/api/trains/classes` | GET | — | Coach class labels, fare rates and seat layout |
 | `/api/trains/fare` | GET | — | Get fare for a route + coach class |
 | `/api/trains/:trainId/route` | GET | — | Full stoppage list for a train |
 | `/api/trains/:trainId/coaches` | GET | — | Coach layout for a train |
@@ -130,8 +137,7 @@ Rail-Sphere/
 | `/api/bookings/:bookingId/cancel` | PATCH | ✅ | Cancel a booking |
 | `/api/bookings/:bookingId/email` | POST | ✅ | Email the ticket |
 | `/api/bookings/pnr/:pnr` | GET | — | Public PNR status lookup |
-| `/api/passengers/saved` | GET/POST | ✅ | Manage saved passenger list |
-| `/api/passengers/saved/:id` | DELETE | ✅ | Remove a saved passenger |
+| `/api/passengers/saved` | GET | ✅ | Recent passengers, derived from booking history |
 | `/api/health` | GET | — | Health check |
 
 ---
@@ -163,15 +169,24 @@ Create a `.env` file in `backend/`:
 ```env
 PORT=5000
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=railsphere_db
+
+# Only needed for a managed database that requires TLS (e.g. Aiven).
+# Leave unset for a plain local MySQL, or the connection will fail.
+# DB_CA_CERT="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+
+# Required — the server refuses to start without it.
 JWT_SECRET=your_jwt_secret
+
+# Comma-separated list of allowed origins.
 FRONTEND_URL=http://localhost:5173
 
-# Email (Nodemailer)
-EMAIL_USER=your_email@example.com
-EMAIL_PASS=your_email_app_password
+# Email (Nodemailer, Gmail app password)
+GMAIL_USER=your_email@gmail.com
+GMAIL_PASS=your_gmail_app_password
 ```
 
 Run the server:

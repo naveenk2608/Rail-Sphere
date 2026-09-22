@@ -17,10 +17,10 @@
   margin-bottom: 14px;
 }
 
-.dp-cal-icon { font-size: 14px; }
+.dp-cal-icon { font-size: var(--fs-sm); }
 
 .dp-selected-label {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: #1a1a2e;
 }
@@ -33,7 +33,7 @@
 }
 
 .dp-month-label {
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: #1a1a2e;
 }
@@ -47,7 +47,7 @@
   background: #f3f6fa;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--fs-base);
   color: #185fa5;
   display: flex;
   align-items: center;
@@ -64,7 +64,7 @@
 
 .dp-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: #9ca3af;
 }
@@ -80,7 +80,7 @@
   border: none;
   background: transparent;
   border-radius: 8px;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   color: #1a1a2e;
   cursor: pointer;
   display: flex;
@@ -113,7 +113,7 @@
 }
 
 .dp-footer-btn {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: #185fa5;
   background: transparent;
@@ -122,3 +122,7 @@
 }
 
 .dp-footer-btn:hover { text-decoration: underline; }
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+  .dp-wrapper { width: 100%; }
+}

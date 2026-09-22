@@ -3,14 +3,29 @@ import { useDebounce } from "../hooks/useDebounce";
 import { api } from "../utils/api";
 import "./StationInput.css";
 
+function displayText(station) {
+  return station ? `${station.station_name} (${station.station_code})` : "";
+}
+
 export default function StationInput({ label, value, onChange }) {
-  const [query,   setQuery]   = useState(value?.station_name ? `${value.station_name} (${value.station_code})` : "");
+  const [query,   setQuery]   = useState(displayText(value));
   const [results, setResults] = useState([]);
   const [open,    setOpen]    = useState(false);
   const [loading, setLoading] = useState(false);
   const debounced = useDebounce(query, 300);
   const ref = useRef(null);
   const requestIdRef = useRef(0);
+  const typingRef = useRef(false);
+
+  // Mirror changes the parent makes (e.g. the swap button). Skipped while the
+  // user is typing, otherwise their own keystrokes would be overwritten.
+  useEffect(() => {
+    if (typingRef.current) {
+      typingRef.current = false;
+      return;
+    }
+    setQuery(displayText(value));
+  }, [value]);
 
   useEffect(() => {
     if (debounced.length < 2) {
@@ -24,7 +39,7 @@ export default function StationInput({ label, value, onChange }) {
 
     api.searchStations(debounced)
       .then((data) => {
-        if (requestIdRef.current !== currentId) return; // stale response, ignore
+        if (requestIdRef.current !== currentId) return;
         setResults(data);
         setOpen(true);
       })
@@ -42,8 +57,15 @@ export default function StationInput({ label, value, onChange }) {
     return () => document.removeEventListener("mousedown", handleOut);
   }, []);
 
+  function handleType(e) {
+    typingRef.current = true;
+    setQuery(e.target.value);
+    setOpen(true);
+    if (value) onChange(null);
+  }
+
   function select(station) {
-    setQuery(`${station.station_name} (${station.station_code})`);
+    setQuery(displayText(station));
     onChange(station);
     setOpen(false);
     setResults([]);
@@ -51,12 +73,13 @@ export default function StationInput({ label, value, onChange }) {
 
   return (
     <div ref={ref} className="si-wrapper">
-      <label className="si-label">{label}</label>
+      {label && <label className="si-label">{label}</label>}
       <input
         className="si-input"
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); onChange(null); }}
+        onChange={handleType}
         placeholder="City or station code"
+        aria-label={label || "Station"}
       />
       {loading && <div className="si-loading">Searching…</div>}
       {open && results.length > 0 && (

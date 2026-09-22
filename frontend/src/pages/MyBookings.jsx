@@ -1,21 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../utils/api";
+import { formatDate, formatTime, departureDateTime } from "../utils/dates";
 import "./MyBookings.css";
 
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function getDepartureDateTime(booking) {
-  const d   = new Date(booking.journey_date);
-  const y   = d.getFullYear();
-  const m   = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const datePart = `${y}-${m}-${day}`;
-  const timePart = booking.departure_time || "00:00:00";
-  return new Date(`${datePart}T${timePart}`);
-}
+const fmtDate = formatDate;
 
 const TABS = ["Upcoming", "Past", "Cancelled"];
 
@@ -34,9 +23,11 @@ export default function MyBookings() {
   const now = new Date();
 
   function classify(b) {
-    const isPast      = getDepartureDateTime(b) < now;
-    const isCancelled = b.booking_status === "CANCELLED";
-    return { isPast, isCancelled };
+    const departure = departureDateTime(b.journey_date, b.departure_time, b.departure_day_offset);
+    return {
+      isPast: departure ? departure < now : false,
+      isCancelled: b.booking_status === "CANCELLED",
+    };
   }
 
   const filtered = bookings.filter((b) => {
@@ -61,6 +52,7 @@ export default function MyBookings() {
                   if (t === "Upcoming")  return !isPast && !isCancelled;
                   if (t === "Past")      return isPast  && !isCancelled;
                   if (t === "Cancelled") return isCancelled;
+                  return false;
                 }).length}
               </span>
             </button>
@@ -99,7 +91,7 @@ export default function MyBookings() {
               <div className="mb-route">
                 <div>
                   <div className="mb-stn-code">{b.source_code}</div>
-                  <div className="mb-stn-time">{b.departure_time?.slice(0,5)}</div>
+                  <div className="mb-stn-time">{formatTime(b.departure_time)}</div>
                 </div>
                 <div className="mb-route-mid">
                   <div className="mb-route-bar" />
@@ -107,7 +99,7 @@ export default function MyBookings() {
                 </div>
                 <div className="mb-stn-right">
                   <div className="mb-stn-code">{b.dest_code}</div>
-                  <div className="mb-stn-time">{b.arrival_time?.slice(0,5)}</div>
+                  <div className="mb-stn-time">{formatTime(b.arrival_time)}</div>
                 </div>
               </div>
 

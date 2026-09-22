@@ -1,18 +1,18 @@
 .sm-page   { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; }
 .sm-topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
-.sm-back   { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 12px; font-size: 13px; color: var(--text-sec); }
+.sm-back   { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 12px; font-size: var(--fs-sm); color: var(--text-sec); }
 .sm-back:hover { background: var(--bg); }
-.sm-train-name { font-size: 15px; font-weight: 700; }
-.sm-route      { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+.sm-train-name { font-size: var(--fs-base); font-weight: 700; }
+.sm-route      { font-size: var(--fs-xs); color: var(--text-sec); margin-top: 2px; }
 .sm-body { flex: 1; max-width: 700px; margin: 0 auto; padding: 20px 24px 100px; width: 100%; }
-.sm-loading { text-align: center; padding: 40px; color: var(--text-sec); font-size: 14px; }
+.sm-loading { text-align: center; padding: 40px; color: var(--text-sec); font-size: var(--fs-sm); }
 
 /* Coach tabs */
 .sm-coach-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .sm-coach-tab {
   padding: 6px 14px; border-radius: var(--radius-md);
   border: 1px solid var(--border); background: var(--white);
-  font-size: 13px; font-weight: 500; color: var(--text-sec);
+  font-size: var(--fs-sm); font-weight: 500; color: var(--text-sec);
   position: relative;
 }
 .sm-coach-tab:hover { background: var(--bg); }
@@ -21,42 +21,36 @@
   position: absolute; top: -6px; right: -6px;
   width: 16px; height: 16px; border-radius: 50%;
   background: #22c55e; color: var(--white);
-  font-size: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: var(--fs-2xs); display: flex; align-items: center; justify-content: center;
 }
 
 /* Legend */
-.sm-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-sec); margin-bottom: 16px; }
+.sm-legend { display: flex; gap: 16px; font-size: var(--fs-xs); color: var(--text-sec); margin-bottom: 16px; }
 .sm-leg-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
 .sm-leg-dot--avail  { background: var(--bg-sec); border: 1px solid var(--border-sec); }
 .sm-leg-dot--sel    { background: var(--blue); }
 .sm-leg-dot--booked { background: #e5e7eb; }
 
-.sm-coach-label { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.sm-coach-label { font-size: var(--fs-sm); font-weight: 600; margin-bottom: 12px; color: var(--text); }
 
-/* Grid */
-.sm-grid-wrapper { overflow-x: auto; }
-.sm-grid { display: inline-flex; flex-direction: column; gap: 6px; min-width: 300px; }
-.sm-grid-header {
-  display: grid; grid-template-columns: 44px 32px 1fr;
-  font-size: 11px; color: var(--text-ter); margin-bottom: 4px;
-  padding: 0 2px; gap: 6px;
-}
-.sm-aisle-label { text-align: center; }
-.sm-row {
-  display: grid; grid-template-columns: 44px 32px 1fr;
-  align-items: center; gap: 6px;
-}
+/* Seat grid — a main bay plus a shorter side bay, per coach class */
+.sm-grid-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.sm-grid { display: inline-flex; flex-direction: column; gap: 6px; }
+.sm-row { display: flex; align-items: center; gap: 6px; }
+.sm-main-group, .sm-side-group { display: flex; gap: 6px; }
+.sm-aisle { width: 28px; flex-shrink: 0; }
+.sm-coach-loading { font-weight: 400; color: var(--text-ter); }
+
 .sm-seat {
-  width: 40px; height: 36px; border-radius: var(--radius-sm);
-  font-size: 12px; font-weight: 600; border: 1px solid var(--border-sec);
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  font-size: var(--fs-xs); font-weight: 600; border: 1px solid var(--border-sec);
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 .sm-seat--available { background: var(--white); color: var(--text); cursor: pointer; }
 .sm-seat--available:hover { background: var(--blue-light); border-color: var(--blue); }
 .sm-seat--selected  { background: var(--blue); color: var(--white); border-color: var(--blue); cursor: pointer; }
 .sm-seat--booked    { background: #f3f4f6; color: var(--text-ter); cursor: not-allowed; border-color: #e5e7eb; }
-.sm-aisle { width: 32px; }
-.sm-right-group { display: flex; gap: 6px; }
 
 /* Bottom bar */
 .sm-bottom {
@@ -66,14 +60,29 @@
 }
 .sm-bottom-inner { max-width: 700px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .sm-selected-info { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.sm-sel-hint  { font-size: 13px; color: var(--text-sec); }
+.sm-sel-hint  { font-size: var(--fs-sm); color: var(--text-sec); }
 .sm-sel-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.sm-sel-chip  { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; }
-.sm-fare      { font-size: 14px; font-weight: 700; color: var(--text); }
+.sm-sel-chip  { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); font-size: var(--fs-xs); font-weight: 600; padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; }
+.sm-fare      { font-size: var(--fs-sm); font-weight: 700; color: var(--text); }
 .sm-continue-btn {
   padding: 11px 28px; background: var(--blue); color: var(--white);
-  border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600;
+  border: none; border-radius: var(--radius-md); font-size: var(--fs-sm); font-weight: 600;
   white-space: nowrap;
 }
 .sm-continue-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .sm-continue-btn:not(:disabled):hover { background: var(--blue-dark); }
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .sm-topbar { padding: 12px var(--gutter); }
+  .sm-body   { padding: 16px var(--gutter) 130px; }
+  .sm-bottom { padding: 12px var(--gutter); }
+  .sm-legend { flex-wrap: wrap; gap: 10px 16px; }
+  .sm-coach-tab { min-height: var(--tap); }
+}
+@media (max-width: 480px) {
+  .sm-seat { width: 36px; height: 36px; }
+  .sm-aisle { width: 16px; }
+  .sm-row, .sm-main-group, .sm-side-group { gap: 4px; }
+  .sm-bottom-inner { flex-direction: column; align-items: stretch; gap: 10px; }
+  .sm-continue-btn { width: 100%; padding: 14px; }
+}
