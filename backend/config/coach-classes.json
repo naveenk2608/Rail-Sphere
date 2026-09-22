@@ -1,0 +1,30 @@
+{
+  "reservationChargePerPassenger": 30,
+  "gstRate": 0.05,
+  "classes": {
+    "SL": {
+      "label": "Sleeper",
+      "ratePerKm": 0.46,
+      "seatsPerRow": 8,
+      "sortOrder": 1
+    },
+    "3A": {
+      "label": "3rd AC",
+      "ratePerKm": 1.15,
+      "seatsPerRow": 8,
+      "sortOrder": 2
+    },
+    "2A": {
+      "label": "2nd AC",
+      "ratePerKm": 1.63,
+      "seatsPerRow": 6,
+      "sortOrder": 3
+    },
+    "1A": {
+      "label": "1st AC",
+      "ratePerKm": 3.07,
+      "seatsPerRow": 4,
+      "sortOrder": 4
+    }
+  }
+}
