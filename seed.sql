@@ -80,6 +80,7 @@ INSERT INTO train_routes
   (2, 13, 8, '15:45:00', NULL,       0, 0, 620);
 
 -- 12805 Janmabhoomi Express (Return): VSKP -> SC
+-- Distances mirror 12806, so a fare is the same in both directions.
 INSERT INTO train_routes
   (train_id, station_id, seq, arrival_time, departure_time,
    arrival_day_offset, departure_day_offset, distance_from_origin) VALUES
@@ -87,7 +88,7 @@ INSERT INTO train_routes
   (3, 12, 2, '06:35:00', '06:36:00', 0, 0,  30),
   (3, 11, 3, '07:50:00', '07:52:00', 0, 0, 150),
   (3, 10, 4, '08:45:00', '08:50:00', 0, 0, 200),
-  (3,  9, 5, '09:55:00', '09:57:00', 0, 0, 249),
+  (3,  9, 5, '09:55:00', '09:57:00', 0, 0, 290),
   (3,  3, 6, '11:10:00', '11:20:00', 0, 0, 350),
   (3,  2, 7, '12:45:00', '12:47:00', 0, 0, 450),
   (3,  1, 8, '15:20:00', NULL,       0, 0, 620);
@@ -109,7 +110,7 @@ INSERT INTO train_routes
   (train_id, station_id, seq, arrival_time, departure_time,
    arrival_day_offset, departure_day_offset, distance_from_origin) VALUES
   (5, 1, 1, NULL,       '06:15:00', 0, 0,   0),
-  (5, 2, 2, '09:05:00', '09:07:00', 0, 0, 190),
+  (5, 2, 2, '09:05:00', '09:07:00', 0, 0, 170),
   (5, 3, 3, '11:30:00', NULL,       0, 0, 270);
 
 -- ---------- Coaches ----------
