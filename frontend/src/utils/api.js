@@ -1,4 +1,7 @@
-const BASE = import.meta.env.VITE_API_URL;
+// Defaults to the same-origin /api path, which the Vite dev server proxies to
+// the backend. Set VITE_API_URL (e.g. https://api.example.com/api) when the
+// backend is hosted elsewhere.
+const BASE = import.meta.env.VITE_API_URL || "/api";
 
 function getToken() {
   return localStorage.getItem("token");

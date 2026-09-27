@@ -32,7 +32,7 @@ function buildNotifications(bookings) {
   return notifs.sort((a, b) => a.departsAt - b.departsAt);
 }
 
-export default function Navbar({ onAuthChange }) {
+export default function Navbar({ authKey }) {
   const [menuOpen,      setMenuOpen]      = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [user,          setUser]          = useState(null);
@@ -49,7 +49,7 @@ export default function Navbar({ onAuthChange }) {
     } else {
       setNotifications([]);
     }
-  }, [onAuthChange]);
+  }, [authKey]);
 
   function handleLogout() {
     localStorage.removeItem("token");

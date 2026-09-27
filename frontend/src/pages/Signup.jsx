@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { consumeReturnPath } from "../hooks/useAuth";
 import { api } from "../utils/api";
 import "./Auth.css";
 
@@ -12,9 +13,12 @@ export default function Signup({ onLogin }) {
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = new URLSearchParams(location.search).get("returnTo") || "/";
 
-  const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
-  const strengthLabel = ["", "Weak", "Fair", "Strong"];
+  // Anything under the 8-character minimum is rejected, so it can't read as "Fair".
+  const strength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
+  const strengthLabel = ["", "Too short", "Fair", "Strong"];
   const strengthCls   = ["", "weak", "fair", "strong"];
 
   function validate() {
@@ -34,7 +38,7 @@ export default function Signup({ onLogin }) {
       const data = await api.register({ name, email, password });
       localStorage.setItem("token", data.token);
       onLogin();
-      navigate("/");
+      navigate(consumeReturnPath(returnTo), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -50,7 +54,7 @@ export default function Signup({ onLogin }) {
           <span className="auth-logo-text">Rail-Sphere</span>
         </Link>
         <h1 className="auth-title">Create account</h1>
-        <p className="auth-sub">Book trains, save passengers and manage all your trips</p>
+        <p className="auth-sub">Book trains and manage all your trips</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
             <label className="auth-label">Full name</label>
@@ -98,7 +102,7 @@ export default function Signup({ onLogin }) {
         <div className="auth-divider"><span>or</span></div>
         <p className="auth-switch">
           Already have an account?{" "}
-          <Link to="/login" className="auth-switch-link">Login</Link>
+          <Link to={`/login${location.search}`} className="auth-switch-link">Login</Link>
         </p>
       </div>
     </div>

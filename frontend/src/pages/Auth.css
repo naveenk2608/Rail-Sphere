@@ -21,8 +21,6 @@
 .auth-field { display: flex; flex-direction: column; gap: 5px; }
 .auth-label-row { display: flex; justify-content: space-between; align-items: center; }
 .auth-label  { font-size: var(--fs-xs); font-weight: 500; color: #374151; }
-.auth-forgot { font-size: var(--fs-xs); color: var(--blue); cursor: pointer; }
-.auth-forgot:hover { text-decoration: underline; }
 .auth-input-wrapper { position: relative; }
 .auth-input {
   width: 100%; padding: 10px 12px; font-size: var(--fs-sm);

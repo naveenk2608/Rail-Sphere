@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Toast from "../components/Toast";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
-import { formatDate, formatTime, stopDate, dayShift } from "../utils/dates";
+import { dayShift, formatDate, formatTime, hasDeparted, stopDate } from "../utils/dates";
+import { classDisplay } from "../utils/fareCalculator";
 import "./Ticket.css";
 
 function fmtDate(d) {
@@ -12,10 +14,19 @@ function fmtDate(d) {
 export default function Ticket() {
   const { bookingId } = useParams();
   const navigate      = useNavigate();
+  const location      = useLocation();
+  const config        = useClassConfig();
   const [booking,  setBooking]  = useState(null);
   const [loading,  setLoading]  = useState(true);
-  const [toast,    setToast]    = useState(null);
+  // Handed over by the booking page, which navigates here on success.
+  const [toast,    setToast]    = useState(() =>
+    location.state?.toast ? { message: location.state.toast, type: "success" } : null);
   const [cancelling, setCancelling] = useState(false);
+
+  // Clear it from history, so a refresh doesn't announce the booking again.
+  useEffect(() => {
+    if (location.state?.toast) navigate(location.pathname, { replace: true, state: null });
+  }, []);
 
   useEffect(() => {
     api.getBookingById(bookingId)
@@ -26,10 +37,10 @@ export default function Ticket() {
 
   async function handleEmail() {
     try {
-      await api.emailTicket(bookingId);
-      setToast({ message: "Ticket sent to your email!", type: "success" });
-    } catch {
-      setToast({ message: "Failed to send email.", type: "error" });
+      const res = await api.emailTicket(bookingId);
+      setToast({ message: res.message || "Ticket sent to your email!", type: "success" });
+    } catch (err) {
+      setToast({ message: err.message || "Failed to send email.", type: "error" });
     }
   }
 
@@ -53,6 +64,7 @@ export default function Ticket() {
   if (!booking) return null;
 
   const cancelled = booking.booking_status === "CANCELLED";
+  const departed  = hasDeparted(booking.journey_date, booking.departure_time, booking.departure_day_offset);
   const departsOn = stopDate(booking.journey_date, booking.departure_day_offset);
   const arrivesOn = stopDate(booking.journey_date, booking.arrival_day_offset);
   const shift = dayShift(booking.departure_day_offset, booking.arrival_day_offset);
@@ -68,9 +80,12 @@ export default function Ticket() {
             <>
               <button className="tk-btn-outline" onClick={handleEmail}>📧 Email ticket</button>
               <button className="tk-btn-outline" onClick={handlePrint}>🖨 Print</button>
-              <button className="tk-btn-cancel" onClick={handleCancel} disabled={cancelling}>
-                {cancelling ? "Cancelling…" : "Cancel booking"}
-              </button>
+              {/* The server refuses to cancel after departure; don't offer it. */}
+              {!departed && (
+                <button className="tk-btn-cancel" onClick={handleCancel} disabled={cancelling}>
+                  {cancelling ? "Cancelling…" : "Cancel booking"}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -106,7 +121,7 @@ export default function Ticket() {
             <div className="tk-route-mid">
               <div className="tk-route-line" />
               <div className="tk-route-train">{booking.train_number} · {booking.train_name}</div>
-              <div className="tk-route-date">{booking.coach_type}</div>
+              <div className="tk-route-date">{classDisplay(config, booking.coach_type)}</div>
             </div>
             <div className="tk-route-stn tk-route-stn--right">
               <div className="tk-stn-code">{booking.dest_code}</div>

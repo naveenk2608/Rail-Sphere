@@ -28,7 +28,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Navbar onAuthChange={authKey} />
+      <Navbar authKey={authKey} />
       <Routes>
         {/* Public */}
         <Route path="/"           element={<HomePage />} />

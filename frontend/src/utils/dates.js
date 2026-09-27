@@ -39,15 +39,20 @@ export function formatTime(time) {
   return time ? String(time).slice(0, 5) : "—";
 }
 
+// Timetable times are Indian Railways local time, so departures are built
+// with an explicit IST offset. Using the browser's timezone would put the
+// "departed" cutoff hours off for anyone outside India, and disagree with
+// the server's check.
+const IST_OFFSET = "+05:30";
+
 // A booking's departure as a real instant, accounting for journeys that
 // leave on a later calendar day than the one booked.
 export function departureDateTime(journeyDate, time, dayOffset = 0) {
-  const date = parseLocalDate(journeyDate);
-  if (!date) return null;
-  const [h, m, s] = String(time || "00:00:00").split(":").map(Number);
-  date.setDate(date.getDate() + (dayOffset || 0));
-  date.setHours(h || 0, m || 0, s || 0, 0);
-  return date;
+  const date = stopDate(journeyDate, dayOffset);
+  if (!date || !time) return null;
+  const hms = String(time).length === 5 ? `${time}:00` : String(time);
+  const instant = new Date(`${toDateString(date)}T${hms}${IST_OFFSET}`);
+  return Number.isNaN(instant.getTime()) ? null : instant;
 }
 
 // Calendar date on which a stop is reached. journey_date is the train's run

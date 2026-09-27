@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Toast from "../components/Toast";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
-import { calculateFare, formatFare, loadClassConfig } from "../utils/fareCalculator";
-import { formatDate } from "../utils/dates";
+import { calculateFare, classDisplay, formatFare } from "../utils/fareCalculator";
+import { dayShift, formatDate, stopDate } from "../utils/dates";
 import "./PassengerDetails.css";
 
 const GENDER_OPTIONS = [
@@ -36,7 +37,9 @@ export default function PassengerDetails() {
   const trainName   = params.get("trainName");
   const trainNumber = params.get("trainNumber");
   const coachType   = params.get("coachType");
-  const date        = params.get("date");
+  const date        = params.get("date");        // run date at the train's origin
+  const depOffset   = Number(params.get("depOffset")) || 0;
+  const arrOffset   = Number(params.get("arrOffset")) || 0;
   const fromId      = params.get("fromId");
   const toId        = params.get("toId");
   const distance    = Number(params.get("distance"));
@@ -48,7 +51,6 @@ export default function PassengerDetails() {
   const [passengers, setPassengers] = useState(() => seats.map(() => emptyPax()));
   const [savedList,  setSavedList]  = useState([]);
   const [errors,     setErrors]     = useState(() => seats.map(() => ({})));
-  const [config,     setConfig]     = useState(null);
   const [toast,      setToast]      = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,8 +58,9 @@ export default function PassengerDetails() {
     if (seats.length === 0) navigate("/", { replace: true });
   }, [seats.length, navigate]);
 
+  const config = useClassConfig();
+
   useEffect(() => {
-    loadClassConfig().then(setConfig).catch(() => {});
     api.getSavedPassengers().then(setSavedList).catch(() => {});
   }, []);
 
@@ -112,8 +115,11 @@ export default function PassengerDetails() {
           gender: p.gender,
         })),
       });
-      setToast({ message: "Booking confirmed!", type: "success" });
-      navigate(`/ticket/${res.booking_id}`, { replace: true });
+      // Shown by the ticket page: a toast set here would unmount immediately.
+      navigate(`/ticket/${res.booking_id}`, {
+        replace: true,
+        state: { toast: "Booking confirmed!" },
+      });
     } catch (err) {
       setToast({ message: err.message, type: "error" });
       setSubmitting(false);
@@ -123,6 +129,8 @@ export default function PassengerDetails() {
   if (seats.length === 0) return null;
 
   const fare = calculateFare(config, distance, coachType, seats.length);
+  const boardingDate = formatDate(stopDate(date, depOffset));
+  const shift = dayShift(depOffset, arrOffset);
 
   return (
     <div className="pd-page">
@@ -132,7 +140,7 @@ export default function PassengerDetails() {
         <button className="pd-back" onClick={() => navigate(-1)}>← Back</button>
         <div>
           <div className="pd-title">Passenger details</div>
-          <div className="pd-sub">{trainName} · {fromCode} → {toCode} · {formatDate(date)}</div>
+          <div className="pd-sub">{trainName} · {fromCode} → {toCode} · {boardingDate}</div>
         </div>
       </div>
 
@@ -220,10 +228,13 @@ export default function PassengerDetails() {
           <div className="pd-journey-card">
             <div className="pd-journey-title">Journey details</div>
             <div className="pd-journey-row"><span>Train</span><span>{trainNumber}</span></div>
-            <div className="pd-journey-row"><span>Class</span><span>{coachType}</span></div>
-            <div className="pd-journey-row"><span>Date</span><span>{formatDate(date)}</span></div>
+            <div className="pd-journey-row"><span>Class</span><span>{classDisplay(config, coachType)}</span></div>
+            <div className="pd-journey-row"><span>Boarding</span><span>{boardingDate}</span></div>
             <div className="pd-journey-row"><span>Dep</span><span>{dep}</span></div>
-            <div className="pd-journey-row"><span>Arr</span><span>{arr}</span></div>
+            <div className="pd-journey-row">
+              <span>Arr</span>
+              <span>{arr}{shift && <span className="day-shift">{shift}</span>}</span>
+            </div>
           </div>
 
           <button className="pd-confirm-btn" onClick={handleSubmit} disabled={submitting}>

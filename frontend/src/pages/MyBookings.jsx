@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
-import { formatDate, formatTime, departureDateTime, dayShift } from "../utils/dates";
+import { formatDate, formatTime, departureDateTime, dayShift, stopDate } from "../utils/dates";
+import { classDisplay } from "../utils/fareCalculator";
 import "./MyBookings.css";
-
-const fmtDate = formatDate;
 
 const TABS = ["Upcoming", "Past", "Cancelled"];
 
@@ -12,11 +12,13 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [tab,      setTab]      = useState("Upcoming");
+  const [error,    setError]    = useState("");
+  const config = useClassConfig();
 
   useEffect(() => {
     api.getMyBookings()
       .then(setBookings)
-      .catch(() => {})
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -63,7 +65,9 @@ export default function MyBookings() {
       <div className="mb-body">
         {loading && <div className="mb-state">Loading bookings…</div>}
 
-        {!loading && filtered.length === 0 && (
+        {error && <div className="mb-state">{error}</div>}
+
+        {!loading && !error && filtered.length === 0 && (
           <div className="mb-empty">
             <div className="mb-empty-icon">🎫</div>
             <div className="mb-empty-text">No {tab.toLowerCase()} bookings</div>
@@ -78,7 +82,7 @@ export default function MyBookings() {
               <div className="mb-card-top">
                 <div>
                   <div className="mb-train-name">{b.train_name}</div>
-                  <div className="mb-train-meta">{b.train_number} · {b.coach_type}</div>
+                  <div className="mb-train-meta">{b.train_number} · {classDisplay(config, b.coach_type)}</div>
                 </div>
                 <span className={`mb-badge ${
                   isCancelled ? "mb-badge--red" :
@@ -95,7 +99,7 @@ export default function MyBookings() {
                 </div>
                 <div className="mb-route-mid">
                   <div className="mb-route-bar" />
-                  <div className="mb-route-info">{fmtDate(b.journey_date)} · {b.passenger_count} pax</div>
+                  <div className="mb-route-info">{formatDate(stopDate(b.journey_date, b.departure_day_offset))} · {b.passenger_count} pax</div>
                 </div>
                 <div className="mb-stn-right">
                   <div className="mb-stn-code">{b.dest_code}</div>
