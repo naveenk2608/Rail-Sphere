@@ -3,6 +3,7 @@ const config = require("./coach-classes.json");
 const CLASSES = config.classes;
 const RESERVATION_CHARGE = config.reservationChargePerPassenger;
 const GST_RATE = config.gstRate;
+const MAX_SEATS_PER_BOOKING = config.maxSeatsPerBooking;
 
 function isValidType(coachType) {
   return Object.prototype.hasOwnProperty.call(CLASSES, coachType);
@@ -21,6 +22,7 @@ function listClasses() {
   return {
     reservationChargePerPassenger: RESERVATION_CHARGE,
     gstRate: GST_RATE,
+    maxSeatsPerBooking: MAX_SEATS_PER_BOOKING,
     classes: Object.entries(CLASSES)
       .map(([coach_type, c]) => ({
         coach_type,
@@ -41,4 +43,6 @@ function calculateFare(distanceKm, coachType, passengers = 1) {
   return { base, reservation, gst, total: base + reservation + gst };
 }
 
-module.exports = { isValidType, getClass, listClasses, calculateFare };
+module.exports = {
+  isValidType, getClass, listClasses, calculateFare, MAX_SEATS_PER_BOOKING,
+};

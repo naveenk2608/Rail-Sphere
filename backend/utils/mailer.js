@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+const { getClass, isValidType } = require("../config/coachClasses");
+const { addDays } = require("./dates");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -22,9 +24,20 @@ function fmtTime(t) {
   return t ? String(t).slice(0, 5) : "—";
 }
 
-function fmtDate(d) {
-  const date = new Date(d);
-  return Number.isNaN(date.getTime()) ? "—" : date.toDateString();
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+// Built from the date's own components: `new Date("2026-09-23")` is UTC
+// midnight, which reads back as the 22nd on a server west of UTC.
+function fmtDate(dateStr) {
+  const [y, m, d] = String(dateStr).slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${weekday}, ${d} ${MONTHS[m - 1]} ${y}`;
+}
+
+function classLabel(coachType) {
+  return isValidType(coachType) ? `${getClass(coachType).label} (${coachType})` : coachType;
 }
 
 function genderLabel(g) {
@@ -34,6 +47,10 @@ function genderLabel(g) {
 }
 
 async function sendTicketEmail(toEmail, booking) {
+  // journey_date is the run date at the train's origin; each stop's day
+  // offset moves it to the day the passenger actually boards and arrives.
+  const departsOn = addDays(booking.journey_date, booking.departure_day_offset);
+  const arrivesOn = addDays(booking.journey_date, booking.arrival_day_offset);
   const passengerRows = booking.passengers
     .map(
       (p, i) => `
@@ -64,7 +81,7 @@ async function sendTicketEmail(toEmail, booking) {
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280;font-size:13px">Class</td>
-          <td style="padding:6px 0;font-weight:600">${esc(booking.coach_type)}</td>
+          <td style="padding:6px 0;font-weight:600">${esc(classLabel(booking.coach_type))}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280;font-size:13px">From</td>
@@ -72,11 +89,11 @@ async function sendTicketEmail(toEmail, booking) {
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280;font-size:13px">To</td>
-          <td style="padding:6px 0;font-weight:600">${esc(booking.dest_name)} (${esc(booking.dest_code)}) — ${esc(fmtTime(booking.arrival_time))}</td>
+          <td style="padding:6px 0;font-weight:600">${esc(booking.dest_name)} (${esc(booking.dest_code)}) — ${esc(fmtTime(booking.arrival_time))}, ${esc(fmtDate(arrivesOn))}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;color:#6b7280;font-size:13px">Date</td>
-          <td style="padding:6px 0;font-weight:600">${esc(fmtDate(booking.journey_date))}</td>
+          <td style="padding:6px 0;color:#6b7280;font-size:13px">Boarding date</td>
+          <td style="padding:6px 0;font-weight:600">${esc(fmtDate(departsOn))}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280;font-size:13px">Total Paid</td>

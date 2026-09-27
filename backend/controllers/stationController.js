@@ -2,8 +2,10 @@ const db = require("../db");
 
 async function searchStations(req, res) {
   try {
-    const { q } = req.query;
-    if (!q || q.trim().length < 2) return res.json([]);
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (q.length < 2) return res.json([]);
+    // Treat % and _ as literal characters, not LIKE wildcards.
+    const pattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 
     const [rows] = await db.query(
       `SELECT station_id, station_code, station_name
@@ -11,7 +13,7 @@ async function searchStations(req, res) {
        WHERE station_name LIKE ? OR station_code LIKE ?
        ORDER BY station_name
        LIMIT 8`,
-      [`%${q}%`, `%${q}%`]
+      [pattern, pattern]
     );
     res.json(rows);
   } catch (err) {

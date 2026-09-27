@@ -155,7 +155,7 @@ CREATE TABLE seat_bookings (
     KEY idx_booking (booking_id),
     CONSTRAINT chk_seat_segment CHECK (from_seq < to_seq),
     CONSTRAINT chk_seat_no      CHECK (seat_no > 0),
-    CONSTRAINT chk_seat_age     CHECK (age > 0 AND age < 150)
+    CONSTRAINT chk_seat_age     CHECK (age BETWEEN 1 AND 120)
 ) ENGINE=InnoDB;
 
 -- ============================================================

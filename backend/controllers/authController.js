@@ -21,12 +21,16 @@ async function register(req, res) {
     const { name, email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: "All fields are required." });
+    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string")
+      return res.status(400).json({ error: "Invalid input." });
 
     const trimmedName = String(name).trim();
     const normalizedEmail = String(email).trim().toLowerCase();
 
     if (!trimmedName)
       return res.status(400).json({ error: "Name is required." });
+    if (trimmedName.length > 100)
+      return res.status(400).json({ error: "Name is too long." });
     if (!EMAIL_PATTERN.test(normalizedEmail))
       return res.status(400).json({ error: "Enter a valid email address." });
     if (password.length < MIN_PASSWORD_LENGTH)
@@ -62,6 +66,8 @@ async function login(req, res) {
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ error: "Email and password required." });
+    if (typeof email !== "string" || typeof password !== "string")
+      return res.status(400).json({ error: "Invalid input." });
 
     const [rows] = await db.query(
       "SELECT user_id, name, email, password_hash FROM users WHERE email = ?",

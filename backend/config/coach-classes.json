@@ -1,6 +1,7 @@
 {
   "reservationChargePerPassenger": 30,
   "gstRate": 0.05,
+  "maxSeatsPerBooking": 5,
   "classes": {
     "SL": {
       "label": "Sleeper",

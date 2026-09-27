@@ -1,36 +1,30 @@
 const db = require("../db");
 const { generatePNR } = require("../utils/pnrGenerator");
 const { sendTicketEmail } = require("../utils/mailer");
-const { calculateFare, isValidType } = require("../config/coachClasses");
+const { calculateFare, isValidType, MAX_SEATS_PER_BOOKING } = require("../config/coachClasses");
+const { isValidDate, dayOfWeek, departureInstant } = require("../utils/dates");
 
-const MAX_SEATS_PER_BOOKING = 5;
 const PNR_ATTEMPTS = 5;
 
-// Timetable times are Indian Railways local time. Pinning the offset keeps the
-// "already departed" check identical regardless of the server's timezone.
-const IST_OFFSET = "+05:30";
-
-function departureInstant(journeyDate, departureTime, dayOffset) {
-  if (!departureTime) return null;
-  const date = String(journeyDate).slice(0, 10);
-  const instant = new Date(`${date}T${departureTime}${IST_OFFSET}`);
-  if (Number.isNaN(instant.getTime())) return null;
-  instant.setDate(instant.getDate() + (dayOffset || 0));
-  return instant;
-}
+// InnoDB aborts one side of a lock cycle rather than letting both wait.
+// Either way the other booking won the seats, so the client should re-select.
+const LOCK_ERRORS = new Set(["ER_LOCK_DEADLOCK", "ER_LOCK_WAIT_TIMEOUT"]);
 
 function validatePassenger(p) {
   if (!p || typeof p.passenger_name !== "string" || !p.passenger_name.trim())
     return "Passenger name is required.";
+  if (p.passenger_name.trim().length > 100)
+    return "Passenger name is too long.";
   const age = Number(p.age);
   if (!Number.isInteger(age) || age < 1 || age > 120)
     return "Passenger age must be between 1 and 120.";
-  if (p.gender && !["M", "F", "OTHER"].includes(p.gender))
-    return "Invalid gender.";
+  if (!["M", "F", "OTHER"].includes(p.gender))
+    return "Passenger gender is required.";
   return null;
 }
 
 // POST /api/bookings
+// journey_date is the train's run date at its origin, as returned by search.
 async function createBooking(req, res) {
   const {
     train_id,
@@ -54,16 +48,28 @@ async function createBooking(req, res) {
     return res.status(400).json({ error: `Maximum ${MAX_SEATS_PER_BOOKING} seats per booking.` });
   if (!isValidType(coach_type))
     return res.status(400).json({ error: "Invalid coach type." });
-  if (source_station_id === destination_station_id)
+  if (!isValidDate(journey_date))
+    return res.status(400).json({ error: "Invalid journey date." });
+  if (String(source_station_id) === String(destination_station_id))
     return res.status(400).json({ error: "Source and destination must differ." });
 
   for (const p of passengers) {
     const problem = validatePassenger(p);
     if (problem) return res.status(400).json({ error: problem });
   }
+
+  const seatList = [];
+  const seen = new Set();
   for (const s of seats) {
-    if (!s || !Number.isInteger(Number(s.coach_id)) || !Number.isInteger(Number(s.seat_no)))
+    const coach_id = Number(s?.coach_id);
+    const seat_no = Number(s?.seat_no);
+    if (!Number.isInteger(coach_id) || !Number.isInteger(seat_no))
       return res.status(400).json({ error: "Each seat needs a coach_id and seat_no." });
+    const key = `${coach_id}-${seat_no}`;
+    if (seen.has(key))
+      return res.status(400).json({ error: "The same seat was selected twice." });
+    seen.add(key);
+    seatList.push({ coach_id, seat_no });
   }
 
   const conn = await db.getConnection();
@@ -90,6 +96,15 @@ async function createBooking(req, res) {
       return res.status(400).json({ error: "Destination must come after source on this route." });
     }
 
+    const [runs] = await conn.query(
+      `SELECT 1 FROM train_run_days WHERE train_id = ? AND day_of_week = ?`,
+      [train_id, dayOfWeek(journey_date)]
+    );
+    if (!runs.length) {
+      await conn.rollback();
+      return res.status(400).json({ error: "This train does not run on that date." });
+    }
+
     const from_seq = src.seq;
     const to_seq = dst.seq;
     const distance = dst.distance_from_origin - src.distance_from_origin;
@@ -104,19 +119,23 @@ async function createBooking(req, res) {
       return res.status(400).json({ error: "This train has already departed. Please choose a future date." });
     }
 
-    // Every seat must belong to this train, match the requested class,
-    // and sit within its coach's seat count.
-    const coachIds = [...new Set(seats.map((s) => Number(s.coach_id)))];
+    // Lock the coach rows first. Every booking for these coaches queues here,
+    // in coach_id order, so two bookings can never hold gap locks on the same
+    // seat range and deadlock each other on INSERT. The lock is per coach, so
+    // bookings in other coaches or other trains are unaffected.
+    const coachIds = [...new Set(seatList.map((s) => s.coach_id))].sort((a, b) => a - b);
     const [coaches] = await conn.query(
       `SELECT coach_id, coach_type, total_seats
          FROM coaches
-        WHERE train_id = ? AND coach_id IN (?)`,
+        WHERE train_id = ? AND coach_id IN (?)
+        ORDER BY coach_id
+          FOR UPDATE`,
       [train_id, coachIds]
     );
-    const coachById = new Map(coaches.map((c) => [String(c.coach_id), c]));
+    const coachById = new Map(coaches.map((c) => [c.coach_id, c]));
 
-    for (const seat of seats) {
-      const coach = coachById.get(String(seat.coach_id));
+    for (const seat of seatList) {
+      const coach = coachById.get(seat.coach_id);
       if (!coach) {
         await conn.rollback();
         return res.status(400).json({ error: "Selected coach does not belong to this train." });
@@ -131,19 +150,10 @@ async function createBooking(req, res) {
       }
     }
 
-    const seen = new Set();
-    for (const seat of seats) {
-      const key = `${seat.coach_id}-${seat.seat_no}`;
-      if (seen.has(key)) {
-        await conn.rollback();
-        return res.status(400).json({ error: "The same seat was selected twice." });
-      }
-      seen.add(key);
-    }
-
-    // FOR UPDATE takes a gap lock over the segment range, so a concurrent
-    // booking of the same seat blocks here instead of both passing the check.
-    for (const seat of seats) {
+    // A locking read, so it sees rows committed by a booking that held the
+    // coach lock before us — a plain SELECT would read this transaction's
+    // older snapshot and miss them.
+    for (const seat of seatList) {
       const [conflict] = await conn.query(
         `SELECT seat_booking_id FROM seat_bookings
           WHERE coach_id     = ?
@@ -189,7 +199,7 @@ async function createBooking(req, res) {
     }
 
     for (let i = 0; i < passengers.length; i++) {
-      const seat = seats[i];
+      const seat = seatList[i];
       const pax = passengers[i];
       await conn.query(
         `INSERT INTO seat_bookings
@@ -197,7 +207,7 @@ async function createBooking(req, res) {
             passenger_name, age, gender)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [booking_id, seat.coach_id, seat.seat_no, from_seq, to_seq, journey_date,
-         pax.passenger_name.trim(), Number(pax.age), pax.gender || null]
+         pax.passenger_name.trim(), Number(pax.age), pax.gender]
       );
     }
 
@@ -205,6 +215,8 @@ async function createBooking(req, res) {
     res.status(201).json({ booking_id, pnr });
   } catch (err) {
     await conn.rollback();
+    if (LOCK_ERRORS.has(err.code))
+      return res.status(409).json({ error: "Those seats were just booked by someone else. Please re-select." });
     console.error("createBooking error:", err);
     res.status(500).json({ error: "Booking failed. Please try again." });
   } finally {
