@@ -1,16 +1,10 @@
 import { useState } from "react";
+import { toDateString } from "../utils/dates";
 import "./DatePicker.css";
 
 const DAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-function toLocalDateString(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 export default function DatePicker({ value, onSelect, minDate, onClose }) {
   const selectedDate = new Date(value + "T00:00:00");
@@ -57,7 +51,7 @@ export default function DatePicker({ value, onSelect, minDate, onClose }) {
 
   function pickDay(cell) {
     if (isDisabled(cell.date)) return;
-    onSelect(toLocalDateString(cell.date));
+    onSelect(toDateString(cell.date));
     onClose();
   }
 
@@ -98,7 +92,7 @@ export default function DatePicker({ value, onSelect, minDate, onClose }) {
         })}
       </div>
       <div className="dp-footer">
-        <button className="dp-footer-btn" onClick={() => { onSelect(toLocalDateString(today)); onClose(); }}>
+        <button className="dp-footer-btn" onClick={() => { onSelect(toDateString(today)); onClose(); }}>
           Today
         </button>
       </div>

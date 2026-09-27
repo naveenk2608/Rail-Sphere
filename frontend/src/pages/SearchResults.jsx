@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RouteModal from "../components/RouteModal";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
+import { classDisplay } from "../utils/fareCalculator";
 import { formatDate, formatTime, durationLabel, hasDeparted, dayShift } from "../utils/dates";
 import "./SearchResults.css";
 
@@ -22,6 +24,7 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
   const [route,   setRoute]   = useState(null);
+  const config = useClassConfig();
 
   useEffect(() => {
     setLoading(true);
@@ -32,13 +35,18 @@ export default function SearchResults() {
       .finally(() => setLoading(false));
   }, [fromId, toId, date, cls]);
 
+  // `date` is the boarding date the user searched for. The seat map and the
+  // booking need the train's run date at its origin (journey_date), plus the
+  // day offsets to show boarding and arrival dates correctly.
   function handleClassSelect(train, coachType) {
     const next = new URLSearchParams({
       trainId: train.train_id,
       trainName: train.train_name,
       trainNumber: train.train_number,
       coachType,
-      date,
+      date: train.journey_date,
+      depOffset: train.departure_day_offset,
+      arrOffset: train.arrival_day_offset,
       fromId, toId, fromCode, toCode,
       fromSeq: train.from_seq,
       toSeq: train.to_seq,
@@ -61,7 +69,7 @@ export default function SearchResults() {
           <div className="sr-route-info">
             <span className="sr-route-main">{fromCode} → {toCode}</span>
             <span className="sr-route-sub">
-              {fromName} to {toName} · {displayDate} · {cls === "ALL" ? "All Classes" : cls}
+              {fromName} to {toName} · {displayDate} · {cls === "ALL" ? "All Classes" : classDisplay(config, cls)}
             </span>
           </div>
         </div>
@@ -82,7 +90,7 @@ export default function SearchResults() {
         )}
 
         {trains.map((train) => {
-          const departed = hasDeparted(date, train.departure_time, train.departure_day_offset);
+          const departed = hasDeparted(train.journey_date, train.departure_time, train.departure_day_offset);
           return (
             <div key={train.train_id} className="sr-card">
               <div className="sr-card-top">

@@ -1,23 +1,49 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SearchBox from "../components/SearchBox";
 import { getUserFromToken } from "../hooks/useAuth";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
-import { formatDate, formatTime, departureDateTime, dayShift } from "../utils/dates";
+import { formatDate, formatTime, departureDateTime, dayShift, stopDate, toDateString } from "../utils/dates";
+import { classDisplay } from "../utils/fareCalculator";
 import "./HomePage.css";
 
+// Only the station pair lives here. Fares, timings and availability come
+// from a live search, so the cards can't drift from the timetable.
 const POPULAR = [
-  { fromId: null, toId: null, from: "BZA",  to: "VSKP", fromName: "Vijayawada",    toName: "Visakhapatnam", duration: "8h",  fare: 345 },
-  { fromId: null, toId: null, from: "BZA",  to: "MAS",  fromName: "Vijayawada",    toName: "Chennai",       duration: "6h",  fare: 280 },
-  { fromId: null, toId: null, from: "SC",   to: "BZA",  fromName: "Secunderabad",  toName: "Vijayawada",    duration: "4h",  fare: 195 },
-  { fromId: null, toId: null, from: "VSKP", to: "HWH",  fromName: "Visakhapatnam", toName: "Howrah",        duration: "11h", fare: 490 },
+  { from: "BZA",  to: "VSKP", fromName: "Vijayawada",    toName: "Visakhapatnam" },
+  { from: "BZA",  to: "MAS",  fromName: "Vijayawada",    toName: "Chennai" },
+  { from: "SC",   to: "BZA",  fromName: "Secunderabad",  toName: "Vijayawada" },
+  { from: "VSKP", to: "HWH",  fromName: "Visakhapatnam", toName: "Howrah" },
 ];
 
-const fmtDate = formatDate;
+async function findStation(code) {
+  const results = await api.searchStations(code);
+  return results.find((s) => s.station_code === code) || null;
+}
 
 export default function HomePage() {
   const user     = getUserFromToken();
   const [bookings, setBookings] = useState([]);
+  const [popularError, setPopularError] = useState("");
+  const config   = useClassConfig();
+  const navigate = useNavigate();
+
+  async function searchPopular(route) {
+    setPopularError("");
+    try {
+      const [from, to] = await Promise.all([findStation(route.from), findStation(route.to)]);
+      if (!from || !to) throw new Error("That route is not available right now.");
+      const params = new URLSearchParams({
+        fromId: from.station_id, toId: to.station_id, date: toDateString(), cls: "ALL",
+        fromName: from.station_name, fromCode: from.station_code,
+        toName: to.station_name,     toCode: to.station_code,
+      });
+      navigate(`/search?${params.toString()}`);
+    } catch (e) {
+      setPopularError(e.message);
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -63,14 +89,14 @@ export default function HomePage() {
                 <div className="hp-bc-top">
                   <div>
                     <div className="hp-train-name">{b.train_name}</div>
-                    <div className="hp-train-meta">{b.train_number} · {b.coach_type}</div>
+                    <div className="hp-train-meta">{b.train_number} · {classDisplay(config, b.coach_type)}</div>
                   </div>
                   <span className="hp-badge hp-badge--green">Confirmed</span>
                 </div>
                 <div className="hp-route">
                   <div>
                     <div className="hp-stn-code">{b.source_code}</div>
-                    <div className="hp-stn-time">{formatTime(b.departure_time)} · {fmtDate(b.journey_date)}</div>
+                    <div className="hp-stn-time">{formatTime(b.departure_time)} · {formatDate(stopDate(b.journey_date, b.departure_day_offset))}</div>
                   </div>
                   <div className="hp-route-mid">
                     <div className="hp-route-bar" />
@@ -105,15 +131,17 @@ export default function HomePage() {
           </div>
           <div className="hp-popular-grid">
             {POPULAR.map((r) => (
-              <div key={r.from + r.to} className="hp-pop-card">
+              <button key={r.from + r.to} type="button" className="hp-pop-card"
+                onClick={() => searchPopular(r)}>
                 <div>
                   <div className="hp-pop-route">{r.from} → {r.to}</div>
-                  <div className="hp-pop-meta">{r.fromName} to {r.toName} · {r.duration}</div>
+                  <div className="hp-pop-meta">{r.fromName} to {r.toName}</div>
                 </div>
-                <div className="hp-pop-fare">from ₹{r.fare}</div>
-              </div>
+                <div className="hp-pop-fare">Today's trains →</div>
+              </button>
             ))}
           </div>
+          {popularError && <div className="hp-pop-error">{popularError}</div>}
         </section>
       </div>
     </div>

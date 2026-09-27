@@ -1,16 +1,6 @@
 const db = require("../db");
 const { calculateFare, isValidType, listClasses, getClass } = require("../config/coachClasses");
-
-const DAY_MAP = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-
-// Parsed as UTC components so the weekday never shifts with the server timezone.
-function dayOfWeek(dateStr) {
-  const [y, m, d] = String(dateStr).slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return null;
-  const utc = new Date(Date.UTC(y, m - 1, d));
-  if (Number.isNaN(utc.getTime())) return null;
-  return DAY_MAP[utc.getUTCDay()];
-}
+const { isValidDate, addDays, dayOfWeek } = require("../utils/dates");
 
 // GET /api/trains/classes
 function getClasses(req, res) {
@@ -18,98 +8,121 @@ function getClasses(req, res) {
 }
 
 // GET /api/trains/search?fromId=1&toId=3&date=2026-07-10&class=SL
+// `date` is the day the passenger boards at fromId. A train reaching that
+// station after midnight left its origin a day earlier, so each train's run
+// date (journey_date) is derived per train and returned to the client.
 async function searchTrains(req, res) {
   try {
     const { fromId, toId, date, class: cls } = req.query;
     if (!fromId || !toId || !date)
       return res.status(400).json({ error: "fromId, toId and date required." });
-    if (fromId === toId)
+    if (String(fromId) === String(toId))
       return res.status(400).json({ error: "Source and destination must differ." });
-
-    const day = dayOfWeek(date);
-    if (!day) return res.status(400).json({ error: "Invalid date." });
+    if (!isValidDate(date)) return res.status(400).json({ error: "Invalid date." });
 
     const classFilter = cls && cls !== "ALL" ? cls : null;
     if (classFilter && !isValidType(classFilter))
       return res.status(400).json({ error: "Invalid class." });
 
-    const [trains] = await db.query(
+    const [candidates] = await db.query(
       `SELECT t.train_id, t.train_number, t.train_name,
               src.seq AS from_seq, dst.seq AS to_seq,
               src.departure_time, src.departure_day_offset,
               dst.arrival_time,   dst.arrival_day_offset,
               (dst.distance_from_origin - src.distance_from_origin) AS distance
          FROM trains t
-         JOIN train_routes   src ON src.train_id = t.train_id AND src.station_id = ?
-         JOIN train_routes   dst ON dst.train_id = t.train_id AND dst.station_id = ?
-         JOIN train_run_days trd ON trd.train_id = t.train_id AND trd.day_of_week = ?
+         JOIN train_routes src ON src.train_id = t.train_id AND src.station_id = ?
+         JOIN train_routes dst ON dst.train_id = t.train_id AND dst.station_id = ?
         WHERE src.seq < dst.seq
         ORDER BY src.departure_time`,
-      [fromId, toId, day]
+      [fromId, toId]
     );
+    if (!candidates.length) return res.json([]);
+
+    const [runDays] = await db.query(
+      `SELECT train_id, day_of_week FROM train_run_days WHERE train_id IN (?)`,
+      [candidates.map((t) => t.train_id)]
+    );
+    const runs = new Set(runDays.map((r) => `${r.train_id}|${r.day_of_week}`));
+
+    const trains = candidates
+      .map((t) => ({ ...t, journey_date: addDays(date, -t.departure_day_offset) }))
+      .filter((t) => runs.has(`${t.train_id}|${dayOfWeek(t.journey_date)}`));
     if (!trains.length) return res.json([]);
 
-    // One query for every train's coaches, rather than one query per train.
-    const trainIds = trains.map((t) => t.train_id);
-    const params = [fromId, toId, date, trainIds];
-    const [coaches] = await db.query(
-      `SELECT c.train_id, c.coach_id, c.coach_type, c.total_seats,
-              COUNT(sb.seat_booking_id) AS booked_seats
-         FROM coaches c
-         JOIN train_routes src ON src.train_id = c.train_id AND src.station_id = ?
-         JOIN train_routes dst ON dst.train_id = c.train_id AND dst.station_id = ?
-         LEFT JOIN seat_bookings sb
-                ON sb.coach_id     = c.coach_id
-               AND sb.journey_date = ?
-               AND sb.status       = 'CONFIRMED'
-               AND sb.from_seq     < dst.seq
-               AND sb.to_seq       > src.seq
-        WHERE c.train_id IN (?) ${classFilter ? "AND c.coach_type = ?" : ""}
-        GROUP BY c.train_id, c.coach_id, c.coach_type, c.total_seats`,
-      classFilter ? [...params, classFilter] : params
-    );
-
-    const byTrain = new Map();
-    for (const coach of coaches) {
-      const key = String(coach.train_id);
-      if (!byTrain.has(key)) byTrain.set(key, new Map());
-      const classMap = byTrain.get(key);
-      const current = classMap.get(coach.coach_type) || { total: 0, booked: 0 };
-      current.total += coach.total_seats;
-      current.booked += Number(coach.booked_seats);
-      classMap.set(coach.coach_type, current);
+    // One coach query per distinct run date (in practice one or two), rather
+    // than one query per train.
+    const byDate = new Map();
+    for (const t of trains) {
+      if (!byDate.has(t.journey_date)) byDate.set(t.journey_date, []);
+      byDate.get(t.journey_date).push(t.train_id);
     }
 
-    const result = trains.map((train) => {
-      const classMap = byTrain.get(String(train.train_id)) || new Map();
-      const classes = [...classMap.entries()]
-        .map(([coach_type, counts]) => {
-          const meta = getClass(coach_type);
-          return {
-            coach_type,
-            label: meta.label,
-            seats_per_row: meta.seatsPerRow,
-            sort_order: meta.sortOrder,
-            available_seats: Math.max(0, counts.total - counts.booked),
-            fare_per_person: calculateFare(train.distance, coach_type, 1).total,
-          };
-        })
-        .sort((a, b) => a.sort_order - b.sort_order);
+    const byTrain = new Map();
+    for (const [journeyDate, trainIds] of byDate) {
+      const params = [fromId, toId, journeyDate, trainIds];
+      const [coaches] = await db.query(
+        `SELECT c.train_id, c.coach_id, c.coach_type, c.total_seats,
+                COUNT(sb.seat_booking_id) AS booked_seats
+           FROM coaches c
+           JOIN train_routes src ON src.train_id = c.train_id AND src.station_id = ?
+           JOIN train_routes dst ON dst.train_id = c.train_id AND dst.station_id = ?
+           LEFT JOIN seat_bookings sb
+                  ON sb.coach_id     = c.coach_id
+                 AND sb.journey_date = ?
+                 AND sb.status       = 'CONFIRMED'
+                 AND sb.from_seq     < dst.seq
+                 AND sb.to_seq       > src.seq
+          WHERE c.train_id IN (?) ${classFilter ? "AND c.coach_type = ?" : ""}
+          GROUP BY c.train_id, c.coach_id, c.coach_type, c.total_seats`,
+        classFilter ? [...params, classFilter] : params
+      );
 
-      return {
-        train_id: train.train_id,
-        train_number: train.train_number,
-        train_name: train.train_name,
-        from_seq: train.from_seq,
-        to_seq: train.to_seq,
-        departure_time: train.departure_time,
-        departure_day_offset: train.departure_day_offset,
-        arrival_time: train.arrival_time,
-        arrival_day_offset: train.arrival_day_offset,
-        distance: train.distance,
-        classes,
-      };
-    });
+      for (const coach of coaches) {
+        const key = String(coach.train_id);
+        if (!byTrain.has(key)) byTrain.set(key, new Map());
+        const classMap = byTrain.get(key);
+        const current = classMap.get(coach.coach_type) || { total: 0, booked: 0 };
+        current.total += coach.total_seats;
+        current.booked += Number(coach.booked_seats);
+        classMap.set(coach.coach_type, current);
+      }
+    }
+
+    const result = trains
+      .map((train) => {
+        const classMap = byTrain.get(String(train.train_id)) || new Map();
+        const classes = [...classMap.entries()]
+          .map(([coach_type, counts]) => {
+            const meta = getClass(coach_type);
+            return {
+              coach_type,
+              label: meta.label,
+              seats_per_row: meta.seatsPerRow,
+              sort_order: meta.sortOrder,
+              available_seats: Math.max(0, counts.total - counts.booked),
+              fare_per_person: calculateFare(train.distance, coach_type, 1).total,
+            };
+          })
+          .sort((a, b) => a.sort_order - b.sort_order);
+
+        return {
+          train_id: train.train_id,
+          train_number: train.train_number,
+          train_name: train.train_name,
+          journey_date: train.journey_date,
+          from_seq: train.from_seq,
+          to_seq: train.to_seq,
+          departure_time: train.departure_time,
+          departure_day_offset: train.departure_day_offset,
+          arrival_time: train.arrival_time,
+          arrival_day_offset: train.arrival_day_offset,
+          distance: train.distance,
+          classes,
+        };
+      })
+      // A class filter can leave a train with nothing to sell.
+      .filter((train) => train.classes.length > 0);
 
     res.json(result);
   } catch (err) {
@@ -150,6 +163,7 @@ async function getBookedSeats(req, res) {
     const { coachId, date, fromSeq, toSeq } = req.query;
     if (!coachId || !date || !fromSeq || !toSeq)
       return res.status(400).json({ error: "coachId, date, fromSeq, toSeq required." });
+    if (!isValidDate(date)) return res.status(400).json({ error: "Invalid date." });
 
     const [rows] = await db.query(
       `SELECT sb.seat_no

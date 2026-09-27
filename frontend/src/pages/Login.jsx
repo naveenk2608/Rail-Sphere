@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { consumeReturnPath } from "../hooks/useAuth";
 import { api } from "../utils/api";
 import "./Auth.css";
 
@@ -22,15 +23,7 @@ export default function Login({ onLogin }) {
       const data = await api.login({ email, password });
       localStorage.setItem("token", data.token);
       onLogin();
-      // restore saved booking progress if any
-      const saved = sessionStorage.getItem("bookingProgress");
-      if (saved) {
-        const prog = JSON.parse(saved);
-        sessionStorage.removeItem("bookingProgress");
-        navigate(prog.returnPath || returnTo);
-      } else {
-        navigate(returnTo);
-      }
+      navigate(consumeReturnPath(returnTo), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -56,7 +49,6 @@ export default function Login({ onLogin }) {
           <div className="auth-field">
             <div className="auth-label-row">
               <label className="auth-label">Password</label>
-              <span className="auth-forgot">Forgot password?</span>
             </div>
             <div className="auth-input-wrapper">
               <input className="auth-input" type={showPass ? "text" : "password"}
@@ -75,7 +67,7 @@ export default function Login({ onLogin }) {
         <div className="auth-divider"><span>or</span></div>
         <p className="auth-switch">
           Don't have an account?{" "}
-          <Link to="/signup" className="auth-switch-link">Sign up</Link>
+          <Link to={`/signup${location.search}`} className="auth-switch-link">Sign up</Link>
         </p>
       </div>
     </div>

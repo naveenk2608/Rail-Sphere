@@ -11,14 +11,15 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 
 ## ✨ Features
 
-- 🔍 **Train Search** — Search by source/destination station and journey date
+- 🔍 **Train Search** — Search by source/destination station and boarding date. Trains that reach your station after midnight are matched to the day they actually leave it
 - 🚉 **Route-Aware Availability** — Seat availability computed per route segment, not just per train, so a seat booked Station A→C can still be sold for D→F
 - 🪑 **Interactive Seat Map** — Visual coach/seat selection per coach type (SL, 3A, 2A, 1A)
-- 👥 **Multi-Passenger Booking** — Book multiple passengers in one transaction, mapped individually to seats
+- 👥 **Multi-Passenger Booking** — Book up to 5 passengers in one transaction, mapped individually to seats
+- 🔒 **No Double-Booking** — Concurrent bookings for the same coach are serialized with row locks; a bundled stress test fires hundreds of simultaneous requests at one seat and checks exactly one succeeds
 - 🎟️ **PNR Generation & Status Lookup** — Every booking gets a unique PNR, publicly checkable without login
 - 📧 **Email Ticketing** — Ticket confirmations sent via Nodemailer
-- 📄 **My Bookings** — View, revisit, and cancel past bookings
-- 💾 **Saved Passengers** — Save frequent passenger details for faster checkout
+- 📄 **My Bookings** — View upcoming, past and cancelled bookings; cancel any trip that hasn't departed
+- 💾 **Quick-Fill Passengers** — Recent passengers are suggested from your booking history for faster checkout
 - 🔐 **JWT Authentication** — Signup/login with hashed passwords (bcrypt) and protected routes
 - 💰 **Fare Calculation** — Distance-based fare lookup per coach class
 - 📱 **Responsive UI** — Plain CSS per component, no UI framework; rem-based type scale and breakpoints at 900 / 768 / 560 / 480px
@@ -48,6 +49,8 @@ Key design points:
 - **`train_routes`** stores each stop's sequence, arrival/departure time, day offset, and distance from origin — the basis for route-based fare and availability logic. The day offset lets a journey span more than one calendar day.
 - **`seat_bookings`** is one row per passenger, per seat, per route segment. Storing `from_seq`/`to_seq` lets overlapping-segment availability be computed instead of blocking a seat for the whole route, and `idx_availability` covers that lookup.
 - **`train_run_days`** encodes which days of the week a train runs, keyed on `(train_id, day_of_week)`.
+- **`bookings.journey_date`** is the train's run date at its **origin**. Search takes the passenger's boarding date and subtracts the boarding stop's day offset, so a train reaching Bhubaneswar at 03:20 on Tuesday is correctly the Monday run from Visakhapatnam. Every page and the ticket email show the boarding date derived from it.
+- **Booking concurrency**: a booking locks its coach rows (`SELECT … FOR UPDATE`, in `coach_id` order) before checking the seat range, so simultaneous bookings for the same coach queue up instead of deadlocking, and exactly one wins a contested seat.
 - Passengers live on `seat_bookings` rather than in separate tables. The relationship is strictly one passenger to one seat, so splitting them produced a cartesian product and no benefit.
 - Saved-passenger suggestions are **derived** from booking history rather than stored, so they cannot drift from what was actually booked.
 - Coach class reference data (fare rate per km, label, seat layout, reservation charge, GST) lives in `backend/config/coach-classes.json`, served to the frontend via `/api/trains/classes` so it has exactly one home.
@@ -58,7 +61,8 @@ Key design points:
 
 ```
 Rail-Sphere/
-├── schema.sql                      # Full MySQL schema (11 tables)
+├── schema.sql                      # Full MySQL schema (8 tables)
+├── seed.sql                        # Sample stations, trains, routes and coaches
 ├── backend/
 │   ├── server.js                   # Express app entry point
 │   ├── db.js                       # MySQL connection pool
@@ -79,9 +83,12 @@ Rail-Sphere/
 │   ├── config/
 │   │   ├── coach-classes.json      # Fare rates, labels, seat layout
 │   │   └── coachClasses.js         # Loader + fare calculation
-│   └── utils/
-│       ├── mailer.js               # Nodemailer email sending
-│       └── pnrGenerator.js         # Random PNR generation
+│   ├── utils/
+│   │   ├── dates.js                # IST-pinned date and run-day helpers
+│   │   ├── mailer.js               # Nodemailer email sending
+│   │   └── pnrGenerator.js         # Random PNR generation
+│   └── tests/
+│       └── concurrency.js          # Double-booking stress test
 └── frontend/
     ├── vite.config.js
     ├── index.html
@@ -106,7 +113,8 @@ Rail-Sphere/
         │   ├── Login.jsx / Signup.jsx
         │   └── Auth.css
         ├── hooks/
-        │   ├── useAuth.js           # Decodes the JWT for display
+        │   ├── useAuth.js           # Decodes the JWT for display, post-login redirect
+        │   ├── useClassConfig.js    # Shared coach class config
         │   └── useDebounce.js
         ├── utils/
         │   ├── api.js               # fetch wrapper
@@ -125,7 +133,7 @@ Rail-Sphere/
 | `/api/auth/register` | POST | — | Create a new user |
 | `/api/auth/login` | POST | — | Login, returns JWT |
 | `/api/stations/search` | GET | — | Search stations by name/code |
-| `/api/trains/search` | GET | — | Search trains between two stations for a date |
+| `/api/trains/search` | GET | — | Search trains between two stations for a boarding date |
 | `/api/trains/classes` | GET | — | Coach class labels, fare rates and seat layout |
 | `/api/trains/fare` | GET | — | Get fare for a route + coach class |
 | `/api/trains/:trainId/route` | GET | — | Full stoppage list for a train |
@@ -156,7 +164,8 @@ cd Rail-Sphere
 
 ### 2. Set up the database
 ```bash
-mysql -u root -p < schema.sql
+mysql -u root -p < schema.sql   # creates railsphere_db (drops existing Rail-Sphere tables)
+mysql -u root -p < seed.sql     # sample stations, trains, routes and coaches
 ```
 
 ### 3. Backend setup
@@ -201,7 +210,21 @@ npm install
 npm run dev
 ```
 
-The frontend (Vite) runs on `http://localhost:5173` by default and expects the backend at the URL configured in `src/utils/api.js`.
+The frontend (Vite) runs on `http://localhost:5173` and calls the API at `/api`, which the Vite dev server proxies to `http://localhost:5000`. No frontend configuration is needed locally.
+
+When the backend is hosted separately (e.g. frontend on Vercel, backend on Render), set its URL at build time in `frontend/.env`:
+```env
+VITE_API_URL=https://your-backend.onrender.com/api
+```
+
+### 5. Run the concurrency test
+With the backend running against a **development** database loaded with `seed.sql`:
+```bash
+cd backend
+npm run test:concurrency                    # 100 simultaneous requests for one seat
+REQUESTS=300 npm run test:concurrency       # or more
+```
+It passes when exactly one booking succeeds and every other request gets a `409 Conflict`. It creates a test user and real bookings, so never point it at production.
 
 ---
 

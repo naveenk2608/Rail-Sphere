@@ -58,10 +58,14 @@ export default function StationInput({ label, value, onChange }) {
   }, []);
 
   function handleType(e) {
-    typingRef.current = true;
     setQuery(e.target.value);
     setOpen(true);
-    if (value) onChange(null);
+    // Flag only when value actually changes, otherwise the flag would linger
+    // and swallow the next parent-driven change (e.g. a swap).
+    if (value) {
+      typingRef.current = true;
+      onChange(null);
+    }
   }
 
   function select(station) {

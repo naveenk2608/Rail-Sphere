@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getUserFromToken } from "../hooks/useAuth";
+import { getUserFromToken, saveBookingProgress } from "../hooks/useAuth";
+import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
-import { calculateFare, formatFare, loadClassConfig } from "../utils/fareCalculator";
+import { formatDate, stopDate } from "../utils/dates";
+import { calculateFare, classDisplay, formatFare, maxSeats } from "../utils/fareCalculator";
 import "./SeatMap.css";
-
-const MAX_SEATS = 5;
 
 // Indian coaches are laid out as a main bay plus a shorter side bay:
 // 8 across is 6 + 2, 6 across is 4 + 2, 4 across has no side berths.
@@ -34,7 +34,10 @@ export default function SeatMap() {
   const trainName   = params.get("trainName");
   const trainNumber = params.get("trainNumber");
   const coachType   = params.get("coachType");
+  // date is the train's run date at its origin; depOffset moves it to the
+  // day the passenger boards.
   const date        = params.get("date");
+  const depOffset   = Number(params.get("depOffset")) || 0;
   const distance    = Number(params.get("distance"));
   const fromSeq     = Number(params.get("fromSeq"));
   const toSeq       = Number(params.get("toSeq"));
@@ -45,19 +48,17 @@ export default function SeatMap() {
   const [activeCoach,   setActiveCoach]   = useState(null);
   const [bookedSeats,   setBookedSeats]   = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [config,        setConfig]        = useState(null);
   const [loading,       setLoading]       = useState(true);
   const [seatsLoading,  setSeatsLoading]  = useState(false);
+  const [error,         setError]         = useState("");
   const seatRequestRef = useRef(0);
-
-  useEffect(() => {
-    loadClassConfig().then(setConfig).catch(() => {});
-  }, []);
+  const config = useClassConfig();
+  const MAX_SEATS = maxSeats(config);
 
   useEffect(() => {
     api.getCoaches(trainId, coachType)
       .then((data) => { setCoaches(data); if (data.length) setActiveCoach(data[0]); })
-      .catch(() => {})
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [trainId, coachType]);
 
@@ -71,7 +72,7 @@ export default function SeatMap() {
 
     api.getBookedSeats(trainId, activeCoach.coach_id, date, fromSeq, toSeq)
       .then((data) => { if (seatRequestRef.current === requestId) setBookedSeats(data); })
-      .catch(() => {})
+      .catch((e) => { if (seatRequestRef.current === requestId) setError(e.message); })
       .finally(() => { if (seatRequestRef.current === requestId) setSeatsLoading(false); });
   }, [activeCoach, trainId, date, fromSeq, toSeq]);
 
@@ -111,7 +112,7 @@ export default function SeatMap() {
     const target = `/passengers?${next.toString()}`;
 
     if (!user) {
-      sessionStorage.setItem("bookingProgress", JSON.stringify({ returnPath: target }));
+      saveBookingProgress(target);
       navigate(`/login?returnTo=${encodeURIComponent(`/seats?${params.toString()}`)}`);
       return;
     }
@@ -144,12 +145,17 @@ export default function SeatMap() {
         <button className="sm-back" onClick={() => navigate(-1)}>← Back</button>
         <div>
           <div className="sm-train-name">{trainName} ({trainNumber})</div>
-          <div className="sm-route">{fromCode} → {toCode} · {date} · {coachType}</div>
+          <div className="sm-route">
+            {fromCode} → {toCode} · {formatDate(stopDate(date, depOffset))} · {classDisplay(config, coachType)}
+          </div>
         </div>
       </div>
 
       <div className="sm-body">
-        {loading ? <div className="sm-loading">Loading coaches…</div> : (
+        {error && <div className="sm-loading">{error}</div>}
+        {loading ? <div className="sm-loading">Loading coaches…</div> : error ? null : coaches.length === 0 ? (
+          <div className="sm-loading">No {coachType} coaches on this train.</div>
+        ) : (
           <>
             <div className="sm-coach-tabs">
               {coaches.map((c) => {

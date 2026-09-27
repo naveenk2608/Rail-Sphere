@@ -29,6 +29,17 @@ export function classLabel(config, coachType) {
   return config?.classes.find((c) => c.coach_type === coachType)?.label || coachType;
 }
 
+// "Sleeper (SL)" once the config has loaded, the bare code until then.
+export function classDisplay(config, coachType) {
+  const label = classLabel(config, coachType);
+  return label === coachType ? coachType : `${label} (${coachType})`;
+}
+
+// Mirrors the server's limit; the fallback only applies before config loads.
+export function maxSeats(config) {
+  return config?.maxSeatsPerBooking || 5;
+}
+
 export function seatsPerRow(config, coachType) {
   return config?.classes.find((c) => c.coach_type === coachType)?.seats_per_row || 4;
 }
