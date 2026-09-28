@@ -16,11 +16,11 @@
   max-width: 340px;
 }
 
-.toast--success { background: #1a1a2e; color: #fff; }
+.toast--success { background: var(--ink); color: #fff; }
 .toast--error   { background: var(--red); color: #fff; }
 .toast--info    { background: var(--blue); color: #fff; }
 
-.toast-icon { font-size: var(--fs-base); flex-shrink: 0; }
+.toast-icon { display: flex; flex-shrink: 0; }
 .toast-msg  { flex: 1; line-height: 1.4; }
 
 .toast-close {

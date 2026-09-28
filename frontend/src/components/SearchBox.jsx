@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { loadClassConfig } from "../utils/fareCalculator";
 import { parseLocalDate, toDateString } from "../utils/dates";
 import DatePicker from "./DatePicker";
+import Icon from "./Icon";
 import "./SearchBox.css";
 import StationInput from "./StationInput";
 
@@ -50,6 +51,14 @@ export default function SearchBox({ defaultValues }) {
   };
   const clsLabel = options.find((o) => o.coach_type === cls)?.label || cls;
 
+  // The date and class cells open popovers; Enter or Space opens them from
+  // the keyboard. Keys pressed inside the popover itself are ignored here.
+  function onCellKey(e, toggle) {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    if (e.key === "Escape") { setShowDP(false); setShowCM(false); }
+  }
+
   function swap() {
     setFrom(to);
     setTo(from);
@@ -73,18 +82,21 @@ export default function SearchBox({ defaultValues }) {
       <div className="sb-bar">
         <div className="sb-cell sb-cell--station">
           <div className="sb-cell-label">From</div>
-          <StationInput value={from} onChange={setFrom} label="" />
-          <button className="sb-swap" onClick={swap} aria-label="Swap stations">⇄</button>
+          <StationInput value={from} onChange={setFrom} ariaLabel="From station" />
+          <button type="button" className="sb-swap" onClick={swap} aria-label="Swap From and To stations"><Icon name="swap" size={16} /></button>
         </div>
 
         <div className="sb-cell sb-cell--station">
           <div className="sb-cell-label">To</div>
-          <StationInput value={to} onChange={setTo} label="" />
+          <StationInput value={to} onChange={setTo} ariaLabel="To station" />
         </div>
 
         <div className="sb-cell sb-cell--date" ref={dateCellRef}
+          role="button" tabIndex={0} aria-haspopup="dialog" aria-expanded={showDatePicker}
+          aria-label={`Boarding date: ${fmt.weekday} ${fmt.day} ${fmt.month} 20${fmt.year}. Change date`}
+          onKeyDown={(e) => onCellKey(e, () => { setShowDP((p) => !p); setShowCM(false); })}
           onClick={() => { setShowDP((p) => !p); setShowCM(false); }}>
-          <div className="sb-cell-label">Travel Date <span className="sb-chevron">⌄</span></div>
+          <div className="sb-cell-label">Boarding date</div>
           <div className="sb-date-big">
             <span className="sb-date-day">{fmt.day}</span>
             <span className="sb-date-month">{fmt.month}'{fmt.year}</span>
@@ -103,29 +115,34 @@ export default function SearchBox({ defaultValues }) {
         </div>
 
         <div className="sb-cell sb-cell--class" ref={classCellRef}
+          role="button" tabIndex={0} aria-haspopup="listbox" aria-expanded={showClassMenu}
+          aria-label={`Class: ${clsLabel}. Change class`}
+          onKeyDown={(e) => onCellKey(e, () => { setShowCM((p) => !p); setShowDP(false); })}
           onClick={() => { setShowCM((p) => !p); setShowDP(false); }}>
-          <div className="sb-cell-label">Class <span className="sb-chevron">⌄</span></div>
+          <div className="sb-cell-label">Class</div>
           <div className="sb-class-big">{cls}</div>
           <div className="sb-date-sub">{clsLabel}</div>
           {showClassMenu && (
-            <div className="sb-popover" onClick={(e) => e.stopPropagation()}>
+            <div className="sb-popover" role="listbox" aria-label="Class" onClick={(e) => e.stopPropagation()}>
               {options.map((o) => (
-                <div key={o.coach_type}
+                <button type="button" key={o.coach_type} role="option" aria-selected={cls === o.coach_type}
                   className={`sb-class-opt ${cls === o.coach_type ? "sb-class-opt--active" : ""}`}
-                  onClick={() => { setCls(o.coach_type); setShowCM(false); }}>
-                  <span className="sb-class-opt-code">{o.coach_type}</span>
+                  onClick={() => { setCls(o.coach_type); setShowCM(false); classCellRef.current?.focus(); }}>
+                  <span className="sb-class-opt-code mono">{o.coach_type}</span>
                   <span className="sb-class-opt-label">{o.label}</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {error && <div className="sb-error">{error}</div>}
-
       <div className="sb-search-row">
-        <button className="sb-search-btn" onClick={handleSearch}>SEARCH</button>
+        {error ? <div className="sb-error" role="alert">{error}</div>
+          : <div className="sb-note">Seats are checked for your stretch of the route only.</div>}
+        <button type="button" className="btn btn--primary btn--lg sb-search-btn" onClick={handleSearch}>
+          <Icon name="search" /> Search trains
+        </button>
       </div>
     </div>
   );

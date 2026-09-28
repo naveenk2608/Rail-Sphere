@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import Icon from "../components/Icon";
 import Toast from "../components/Toast";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
@@ -136,25 +137,25 @@ export default function PassengerDetails() {
     <div className="pd-page">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="pd-topbar">
-        <button className="pd-back" onClick={() => navigate(-1)}>← Back</button>
-        <div>
-          <div className="pd-title">Passenger details</div>
-          <div className="pd-sub">{trainName} · {fromCode} → {toCode} · {boardingDate}</div>
+      <header className="page-head">
+        <div className="page-head-inner">
+          <button type="button" className="page-back" onClick={() => navigate(-1)} aria-label="Back to seats">
+            <Icon name="arrow" size={17} className="flip" />
+          </button>
+          <div>
+            <h1 className="page-title">Passenger details</h1>
+            <p className="page-sub">{trainName} · {fromCode} → {toCode} · {boardingDate}</p>
+          </div>
+          <ol className="pd-stepper" aria-label="Booking progress">
+            <li className="pd-step pd-step--done"><Icon name="check" size={13} strokeWidth={2.5} /> Search</li>
+            <li className="pd-step pd-step--done"><Icon name="check" size={13} strokeWidth={2.5} /> Seats</li>
+            <li className="pd-step pd-step--active" aria-current="step">Passengers</li>
+            <li className="pd-step">Confirm</li>
+          </ol>
         </div>
-      </div>
+      </header>
 
-      <div className="pd-stepper">
-        <div className="pd-step pd-step--done">✓ Search</div>
-        <div className="pd-step-line" />
-        <div className="pd-step pd-step--done">✓ Seats</div>
-        <div className="pd-step-line" />
-        <div className="pd-step pd-step--active">Passengers</div>
-        <div className="pd-step-line" />
-        <div className="pd-step">Confirm</div>
-      </div>
-
-      <div className="pd-body">
+      <div className="page-body pd-body">
         <div className="pd-left">
           {passengers.map((pax, idx) => (
             <div key={idx} className="pd-pax-card">
@@ -181,16 +182,18 @@ export default function PassengerDetails() {
 
               <div className="pd-fields">
                 <div className="pd-field pd-field--name">
-                  <label className="pd-label">Full name *</label>
-                  <input className={`pd-input ${errors[idx]?.passenger_name ? "pd-input--err" : ""}`}
+                  <label className="pd-label" htmlFor={`pax-${idx}-name`}>Full name</label>
+                  <input id={`pax-${idx}-name`} autoComplete="name" aria-invalid={Boolean(errors[idx]?.passenger_name)}
+                    className={`pd-input ${errors[idx]?.passenger_name ? "pd-input--err" : ""}`}
                     placeholder="Name as on ID" value={pax.passenger_name}
                     onChange={(e) => updateField(idx, "passenger_name", e.target.value)} />
                   {errors[idx]?.passenger_name && <span className="pd-err">{errors[idx].passenger_name}</span>}
                 </div>
 
                 <div className="pd-field pd-field--age">
-                  <label className="pd-label">Age *</label>
-                  <input className={`pd-input ${errors[idx]?.age ? "pd-input--err" : ""}`}
+                  <label className="pd-label" htmlFor={`pax-${idx}-age`}>Age</label>
+                  <input id={`pax-${idx}-age`} aria-invalid={Boolean(errors[idx]?.age)}
+                    className={`pd-input ${errors[idx]?.age ? "pd-input--err" : ""}`}
                     type="number" inputMode="numeric" min="1" max="120"
                     placeholder="Age" value={pax.age}
                     onChange={(e) => updateField(idx, "age", e.target.value)} />
@@ -198,8 +201,8 @@ export default function PassengerDetails() {
                 </div>
 
                 <div className="pd-field pd-field--gender">
-                  <label className="pd-label">Gender *</label>
-                  <select className="pd-input" value={pax.gender}
+                  <label className="pd-label" htmlFor={`pax-${idx}-gender`}>Gender</label>
+                  <select id={`pax-${idx}-gender`} className="pd-input" value={pax.gender}
                     onChange={(e) => updateField(idx, "gender", e.target.value)}>
                     {GENDER_OPTIONS.map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
@@ -237,9 +240,10 @@ export default function PassengerDetails() {
             </div>
           </div>
 
-          <button className="pd-confirm-btn" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Confirming…" : "Confirm booking →"}
+          <button type="button" className="btn btn--primary btn--lg pd-confirm-btn" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Confirming…" : <>Confirm booking <Icon name="lock" /></>}
           </button>
+          <p className="pd-secure">Seats are re-checked and the fare recomputed on the server when you confirm.</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import Icon, { Logo } from "../components/Icon";
 import Toast from "../components/Toast";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
@@ -24,16 +25,17 @@ export default function Ticket() {
   const [cancelling, setCancelling] = useState(false);
 
   // Clear it from history, so a refresh doesn't announce the booking again.
+  // Re-runs once after the replace, when the state is already gone.
   useEffect(() => {
     if (location.state?.toast) navigate(location.pathname, { replace: true, state: null });
-  }, []);
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     api.getBookingById(bookingId)
       .then(setBooking)
       .catch(() => navigate("/my-bookings"))
       .finally(() => setLoading(false));
-  }, [bookingId]);
+  }, [bookingId, navigate]);
 
   async function handleEmail() {
     try {
@@ -60,7 +62,14 @@ export default function Ticket() {
 
   function handlePrint() { window.print(); }
 
-  if (loading) return <div className="tk-loading">Loading ticket…</div>;
+  if (loading) {
+    return (
+      <div className="page-body tk-body" aria-busy="true">
+        <div className="skeleton" style={{ height: 96, borderRadius: 14 }} />
+        <div className="skeleton" style={{ height: 320, marginTop: 14, borderRadius: 14 }} />
+      </div>
+    );
+  }
   if (!booking) return null;
 
   const cancelled = booking.booking_status === "CANCELLED";
@@ -73,27 +82,39 @@ export default function Ticket() {
     <div className="tk-page">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="tk-topbar no-print">
-        <button className="tk-back" onClick={() => navigate("/my-bookings")}>← My Bookings</button>
-        <div className="tk-topbar-actions">
-          {!cancelled && (
-            <>
-              <button className="tk-btn-outline" onClick={handleEmail}>📧 Email ticket</button>
-              <button className="tk-btn-outline" onClick={handlePrint}>🖨 Print</button>
-              {/* The server refuses to cancel after departure; don't offer it. */}
-              {!departed && (
-                <button className="tk-btn-cancel" onClick={handleCancel} disabled={cancelling}>
-                  {cancelling ? "Cancelling…" : "Cancel booking"}
+      <header className="page-head no-print">
+        <div className="page-head-inner">
+          <button type="button" className="page-back" onClick={() => navigate("/my-bookings")} aria-label="Back to My bookings">
+            <Icon name="arrow" size={17} className="flip" />
+          </button>
+          <div>
+            <h1 className="page-title">E-ticket</h1>
+            <p className="page-sub mono">PNR {booking.pnr}</p>
+          </div>
+          <div className="page-head-actions">
+            {!cancelled && (
+              <>
+                <button type="button" className="btn btn--secondary btn--sm" onClick={handleEmail}>
+                  <Icon name="mail" /> Email ticket
                 </button>
-              )}
-            </>
-          )}
+                <button type="button" className="btn btn--secondary btn--sm" onClick={handlePrint}>
+                  <Icon name="printer" /> Print
+                </button>
+                {/* The server refuses to cancel after departure; don't offer it. */}
+                {!departed && (
+                  <button type="button" className="btn btn--sm tk-btn-cancel" onClick={handleCancel} disabled={cancelling}>
+                    {cancelling ? "Cancelling…" : "Cancel booking"}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="tk-body">
+      <div className="page-body tk-body">
         {cancelled && (
-          <div className="tk-cancelled-banner">⚠ This booking has been cancelled</div>
+          <div className="tk-cancelled-banner" role="status"><Icon name="alert" size={17} /> This booking has been cancelled</div>
         )}
 
         {/* Ticket card */}
@@ -101,8 +122,10 @@ export default function Ticket() {
           {/* Header */}
           <div className="tk-header">
             <div className="tk-header-left">
-              <div className="tk-logo">🚆 Rail-Sphere</div>
-              <div className="tk-status-badge">{cancelled ? "Cancelled" : "✓ Confirmed"}</div>
+              <div className="tk-logo"><Logo size={22} /> Rail-Sphere</div>
+              <div className={`tk-status-badge ${cancelled ? "is-cancelled" : ""}`}>
+                {cancelled ? "Cancelled" : <><Icon name="check" size={13} strokeWidth={2.5} /> Confirmed</>}
+              </div>
             </div>
             <div className="tk-pnr-block">
               <div className="tk-pnr-label">PNR Number</div>
@@ -175,15 +198,6 @@ export default function Ticket() {
         </div>
       </div>
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          .tk-page  { background: white; }
-          .tk-body  { padding: 0; }
-          .tk-card  { box-shadow: none; border: 1px solid #ccc; }
-        }
-      `}</style>
     </div>
   );
 }

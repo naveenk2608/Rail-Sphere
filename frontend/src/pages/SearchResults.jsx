@@ -1,15 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import Icon from "../components/Icon";
 import RouteModal from "../components/RouteModal";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
 import { classDisplay } from "../utils/fareCalculator";
-import { formatDate, formatTime, durationLabel, hasDeparted, dayShift } from "../utils/dates";
+import { formatDate, formatTime, durationLabel, hasDeparted, dayShift, parseLocalDate, toDateString } from "../utils/dates";
 import "./SearchResults.css";
+
+const LOW_SEATS = 20;
+
+// A week of boarding dates around the one searched, never before today.
+function dateStrip(dateStr) {
+  const base = parseLocalDate(dateStr) || new Date();
+  const today = parseLocalDate(toDateString());
+  const days = [];
+  for (let offset = -3; offset <= 3; offset++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offset);
+    if (d < today) continue;
+    days.push(d);
+  }
+  while (days.length < 7) {
+    const last = new Date(days[days.length - 1]);
+    last.setDate(last.getDate() + 1);
+    days.push(last);
+  }
+  return days;
+}
+
+function SkeletonCard() {
+  return (
+    <div className="sr-card sr-card--skeleton" aria-hidden="true">
+      <div className="skeleton" style={{ width: 220, height: 18 }} />
+      <div className="skeleton" style={{ width: "100%", height: 34, marginTop: 20 }} />
+      <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+        {[0, 1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ width: 120, height: 64 }} />)}
+      </div>
+    </div>
+  );
+}
 
 export default function SearchResults() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const config = useClassConfig();
 
   const fromId   = params.get("fromId");
   const toId     = params.get("toId");
@@ -24,7 +59,15 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
   const [route,   setRoute]   = useState(null);
-  const config = useClassConfig();
+  const datesRef = useRef(null);
+
+  // Keep the selected day visible in the strip on narrow screens. Scrolls
+  // the strip only, never the page.
+  useEffect(() => {
+    const strip = datesRef.current;
+    const active = strip?.querySelector(".is-active");
+    if (strip && active) strip.scrollLeft = active.offsetLeft - strip.clientWidth / 2 + active.clientWidth / 2;
+  }, [date]);
 
   useEffect(() => {
     setLoading(true);
@@ -57,108 +100,146 @@ export default function SearchResults() {
     navigate(`/seats?${next.toString()}`);
   }
 
-  const displayDate = formatDate(date, {
-    weekday: "short", day: "numeric", month: "short", year: "numeric",
-  });
+  function changeDate(d) {
+    const next = new URLSearchParams(params);
+    next.set("date", toDateString(d));
+    navigate(`/search?${next.toString()}`, { replace: true });
+  }
+
+  const displayDate = formatDate(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const days = dateStrip(date);
 
   return (
     <div className="sr-page">
-      <div className="sr-topbar">
-        <div className="sr-topbar-inner">
-          <button className="sr-back" onClick={() => navigate("/")}>← Back</button>
+      <header className="page-head">
+        <div className="page-head-inner">
+          <button type="button" className="page-back" onClick={() => navigate("/")} aria-label="Back to search">
+            <Icon name="arrow" size={17} className="flip" />
+          </button>
           <div className="sr-route-info">
-            <span className="sr-route-main">{fromCode} → {toCode}</span>
-            <span className="sr-route-sub">
-              {fromName} to {toName} · {displayDate} · {cls === "ALL" ? "All Classes" : classDisplay(config, cls)}
-            </span>
+            <h1 className="sr-route-main mono">
+              {fromCode} <Icon name="arrow" size={18} /> {toCode}
+            </h1>
+            <p className="page-sub">
+              {fromName} to {toName} · {displayDate} · {cls === "ALL" ? "All classes" : classDisplay(config, cls)}
+            </p>
           </div>
         </div>
-      </div>
+        <div className="sr-dates-wrap">
+          <nav className="sr-dates" aria-label="Boarding date" ref={datesRef}>
+            {days.map((d) => {
+              const value = toDateString(d);
+              const active = value === date;
+              return (
+                <button key={value} type="button" className={`sr-date ${active ? "is-active" : ""}`}
+                  aria-current={active ? "date" : undefined} onClick={() => !active && changeDate(d)}>
+                  <span className="sr-date-wd">{d.toLocaleDateString("en-IN", { weekday: "short" })}</span>
+                  <span className="sr-date-day">{d.getDate()} {d.toLocaleDateString("en-IN", { month: "short" })}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
 
-      <div className="sr-body">
-        {loading && <div className="sr-state">Searching trains…</div>}
-        {error   && <div className="sr-state sr-state--error">{error}</div>}
-
-        {!loading && !error && trains.length === 0 && (
-          <div className="sr-empty">
-            <div className="sr-empty-icon">🚉</div>
-            <div className="sr-empty-title">No trains found</div>
-            <div className="sr-empty-sub">
-              No trains run between {fromCode} and {toCode} on this date. Try a different date.
-            </div>
+      <div className="page-body sr-body">
+        {loading && (
+          <div aria-busy="true" aria-label="Searching trains">
+            <SkeletonCard /><SkeletonCard />
           </div>
         )}
 
-        {trains.map((train) => {
+        {!loading && error && (
+          <div className="state state--error" role="alert">
+            <span className="state-icon"><Icon name="alert" size={22} /></span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && trains.length === 0 && (
+          <div className="state">
+            <span className="state-icon"><Icon name="train" size={22} /></span>
+            <span className="state-title">No trains on this date</span>
+            <span>Nothing runs from {fromCode} to {toCode} on {displayDate}. Try another day above.</span>
+          </div>
+        )}
+
+        {!loading && !error && trains.length > 0 && (
+          <p className="sr-count">
+            {trains.length} {trains.length === 1 ? "train" : "trains"} · seats counted for {fromCode} → {toCode} only
+          </p>
+        )}
+
+        {!loading && trains.map((train) => {
           const departed = hasDeparted(train.journey_date, train.departure_time, train.departure_day_offset);
+          const shift = dayShift(train.departure_day_offset, train.arrival_day_offset);
           return (
-            <div key={train.train_id} className="sr-card">
+            <article key={train.train_id} className={`sr-card ${departed ? "sr-card--departed" : ""}`}>
               <div className="sr-card-top">
                 <div className="sr-train-info">
-                  <div className="sr-train-name">{train.train_name}</div>
-                  <div className="sr-train-no">{train.train_number}</div>
+                  <span className="sr-train-no mono">{train.train_number}</span>
+                  <h2 className="sr-train-name">{train.train_name}</h2>
+                  {departed && <span className="sr-departed">Departed</span>}
                 </div>
-
-                <div className="sr-timing">
-                  <div className="sr-time-block">
-                    <div className="sr-time">{formatTime(train.departure_time)}</div>
-                    <div className="sr-stn">{fromCode}</div>
-                  </div>
-                  <div className="sr-dur-block">
-                    <div className="sr-dur-line" />
-                    <div className="sr-dur">
-                      {durationLabel(
-                        train.departure_time, train.arrival_time,
-                        train.departure_day_offset, train.arrival_day_offset
-                      )}
-                    </div>
-                  </div>
-                  <div className="sr-time-block sr-time-block--right">
-                    <div className="sr-time">
-                      {formatTime(train.arrival_time)}
-                      {dayShift(train.departure_day_offset, train.arrival_day_offset) && (
-                        <span className="day-shift">
-                          {dayShift(train.departure_day_offset, train.arrival_day_offset)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="sr-stn">{toCode}</div>
-                  </div>
-                </div>
-
-                <button className="sr-view-route"
+                <button type="button" className="sr-view-route"
                   onClick={() => setRoute({
                     trainId: train.train_id,
                     trainName: `${train.train_number} · ${train.train_name}`,
                     fromSeq: train.from_seq,
                     toSeq: train.to_seq,
                   })}>
-                  View route ↓
+                  <Icon name="route" size={15} /> Route
                 </button>
+              </div>
+
+              <div className="sr-timing">
+                <div className="sr-time-block">
+                  <div className="sr-time mono">{formatTime(train.departure_time)}</div>
+                  <div className="sr-stn">{fromCode}</div>
+                </div>
+                <div className="sr-dur-block" aria-label={`Journey time ${durationLabel(train.departure_time, train.arrival_time, train.departure_day_offset, train.arrival_day_offset)}, ${train.distance} km`}>
+                  <div className="sr-dur-line" aria-hidden="true"><i /><i /></div>
+                  <div className="sr-dur">
+                    {durationLabel(train.departure_time, train.arrival_time, train.departure_day_offset, train.arrival_day_offset)}
+                    <span> · {train.distance} km</span>
+                  </div>
+                </div>
+                <div className="sr-time-block sr-time-block--right">
+                  <div className="sr-time mono">
+                    {formatTime(train.arrival_time)}
+                    {shift && <span className="day-shift">{shift}</span>}
+                  </div>
+                  <div className="sr-stn">{toCode}</div>
+                </div>
               </div>
 
               <div className="sr-classes">
                 {train.classes.map((info) => {
-                  const disabled = info.available_seats === 0 || departed;
+                  const full = info.available_seats === 0;
+                  const disabled = full || departed;
+                  const low = !full && info.available_seats <= LOW_SEATS;
                   return (
                     <button
                       key={info.coach_type}
+                      type="button"
                       className={`sr-class-chip ${disabled ? "sr-class-chip--full" : ""}`}
                       disabled={disabled}
                       onClick={() => !disabled && handleClassSelect(train, info.coach_type)}
-                      title={info.label}
+                      aria-label={`${info.label}, ${departed ? "departed" : full ? "full" : `${info.available_seats} seats`}, ₹${info.fare_per_person} per person`}
                     >
-                      <span className="sr-chip-type">{info.coach_type}</span>
-                      <span className="sr-chip-seats">
-                        {departed ? "Departed" : info.available_seats > 0
-                          ? `${info.available_seats} seats` : "Full"}
+                      <span className="sr-chip-top">
+                        <span className="sr-chip-type mono">{info.coach_type}</span>
+                        <span className="sr-chip-label">{info.label}</span>
                       </span>
-                      <span className="sr-chip-fare">₹ {info.fare_per_person}</span>
+                      <span className={`sr-chip-seats ${low ? "is-low" : ""} ${full ? "is-full" : ""}`}>
+                        {departed ? "Departed" : full ? "Full" : `${info.available_seats} available`}
+                      </span>
+                      <span className="sr-chip-fare mono">₹{info.fare_per_person}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

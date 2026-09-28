@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import Icon from "./Icon";
 import "./Toast.css";
 
 export default function Toast({ message, type = "success", onClose }) {
@@ -15,10 +16,12 @@ export default function Toast({ message, type = "success", onClose }) {
   return (
     <div className={`toast toast--${type}`} role="status" aria-live="polite">
       <span className="toast-icon">
-        {type === "success" ? "✓" : type === "error" ? "✕" : "ℹ"}
+        <Icon name={type === "success" ? "check" : type === "error" ? "alert" : "info"} size={17} strokeWidth={2.2} />
       </span>
       <span className="toast-msg">{message}</span>
-      <button className="toast-close" onClick={onClose} aria-label="Dismiss">×</button>
+      <button type="button" className="toast-close" onClick={onClose} aria-label="Dismiss">
+        <Icon name="x" size={16} />
+      </button>
     </div>
   );
 }

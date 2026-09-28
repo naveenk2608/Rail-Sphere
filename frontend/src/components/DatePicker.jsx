@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toDateString } from "../utils/dates";
+import Icon from "./Icon";
 import "./DatePicker.css";
 
 const DAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
@@ -60,7 +61,7 @@ export default function DatePicker({ value, onSelect, minDate, onClose }) {
   return (
     <div className="dp-wrapper">
       <div className="dp-selected-row">
-        <span className="dp-cal-icon">📅</span>
+        <span className="dp-cal-icon"><Icon name="calendar" size={16} /></span>
         <span className="dp-selected-label">{selLabel}</span>
       </div>
 

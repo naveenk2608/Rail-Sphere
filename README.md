@@ -22,7 +22,8 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 - 💾 **Quick-Fill Passengers** — Recent passengers are suggested from your booking history for faster checkout
 - 🔐 **JWT Authentication** — Signup/login with hashed passwords (bcrypt) and protected routes
 - 💰 **Fare Calculation** — Distance-based fare lookup per coach class
-- 📱 **Responsive UI** — Plain CSS per component, no UI framework; rem-based type scale and breakpoints at 900 / 768 / 560 / 480px
+- 📱 **Responsive, accessible UI** — Plain CSS per component, no UI framework or icon font. Design tokens in one file, keyboard-navigable controls, WCAG AA contrast, and animations that respect `prefers-reduced-motion`
+- 🧭 **Landing page and engineering notes** — An interactive seat-overlap demo on `/`, and an architecture, data-model and API deep-dive on `/how-it-works`
 
 ---
 
@@ -96,14 +97,25 @@ Rail-Sphere/
         ├── App.jsx
         ├── main.jsx
         ├── components/
+        │   ├── landing/                # Landing-page sections
+        │   │   ├── Hero.jsx            # Headline, live search, seat timeline
+        │   │   ├── SegmentDemo.jsx     # Interactive overlap demo
+        │   │   ├── BookingFlow.jsx     # The five API steps of a booking
+        │   │   ├── Features.jsx        # Feature grid + stress-test chart
+        │   │   ├── Engineering.jsx     # Architecture + locking code
+        │   │   └── ArchitectureDiagram.jsx
+        │   ├── AuthLayout.jsx          # Split login/signup layout
+        │   ├── Icon.jsx                # Inline SVG icon set and logo
+        │   ├── Footer.jsx / .css
         │   ├── SearchBox.jsx / .css
-        │   ├── StationInput.jsx / .css
+        │   ├── StationInput.jsx / .css # Keyboard-accessible autocomplete
         │   ├── DatePicker.jsx / .css
         │   ├── RouteModal.jsx / .css
-        │   ├── Navbar.jsx / .css
+        │   ├── Navbar.jsx / .css       # Responsive nav with mobile menu
         │   └── Toast.jsx / .css
         ├── pages/
-        │   ├── HomePage.jsx
+        │   ├── HomePage.jsx            # Landing page
+        │   ├── HowItWorks.jsx          # Engineering deep-dive
         │   ├── SearchResults.jsx
         │   ├── SeatMap.jsx
         │   ├── PassengerDetails.jsx
@@ -115,13 +127,15 @@ Rail-Sphere/
         ├── hooks/
         │   ├── useAuth.js           # Decodes the JWT for display, post-login redirect
         │   ├── useClassConfig.js    # Shared coach class config
+        │   ├── useReveal.js         # Scroll-reveal animations
         │   └── useDebounce.js
         ├── utils/
         │   ├── api.js               # fetch wrapper
         │   ├── dates.js             # Timezone-safe date helpers
         │   └── fareCalculator.js    # Fare preview from server config
+        ├── utils/site.js           # GitHub and project links
         └── styles/
-            └── global.css           # Design tokens, type scale, breakpoints
+            └── global.css           # Design tokens, type scale, buttons, breakpoints
 ```
 
 ---

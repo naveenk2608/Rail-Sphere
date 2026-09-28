@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/Icon";
 import { api } from "../utils/api";
 import { formatDate, formatTime, stopDate, dayShift } from "../utils/dates";
 import "./PNRStatus.css";
@@ -37,24 +38,25 @@ export default function PNRStatus() {
       <div className="ps-body">
         <div className="ps-hero">
           <h1 className="ps-title">PNR Status</h1>
-          <p className="ps-sub">Enter your 12-digit PNR to check booking status</p>
+          <p className="ps-sub">Anyone with the PNR can check a booking. No login needed.</p>
 
           <form className="ps-form" onSubmit={handleSearch}>
-            <input className="ps-input" placeholder="Enter 12-digit PNR"
+            <label htmlFor="pnr-input" className="visually-hidden">12-digit PNR</label>
+            <input id="pnr-input" className="ps-input mono" placeholder="12-digit PNR" autoComplete="off"
               value={pnr} onChange={(e) => setPnr(e.target.value.replace(/\D/g, "").slice(0, PNR_LENGTH))}
               maxLength={PNR_LENGTH} inputMode="numeric" />
-            <button className="ps-btn" type="submit" disabled={loading}>
-              {loading ? "Checking…" : "Check Status"}
+            <button className="btn btn--primary btn--lg ps-btn" type="submit" disabled={loading}>
+              {loading ? "Checking…" : <><Icon name="search" /> Check status</>}
             </button>
           </form>
-          {error && <div className="ps-error">{error}</div>}
+          {error && <div className="ps-error" role="alert">{error}</div>}
         </div>
 
         {booking && (
           <div className="ps-result">
             {/* Status banner */}
             <div className={`ps-status-banner ${cancelled ? "ps-status-banner--cancelled" : "ps-status-banner--confirmed"}`}>
-              {cancelled ? "⚠ Booking Cancelled" : "✓ Booking Confirmed"}
+              {cancelled ? <><Icon name="alert" size={17} /> Booking cancelled</> : <><Icon name="check" size={17} strokeWidth={2.4} /> Booking confirmed</>}
             </div>
 
             <div className="ps-card">

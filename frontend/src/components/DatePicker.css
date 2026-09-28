@@ -4,7 +4,7 @@
   border-radius: 14px;
   padding: 16px;
   box-shadow: 0 12px 32px rgba(24, 95, 165, 0.18);
-  border: 1px solid #e0eaf4;
+  border: 1px solid var(--border);
 }
 
 .dp-selected-row {
@@ -22,7 +22,7 @@
 .dp-selected-label {
   font-size: var(--fs-sm);
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--text);
 }
 
 .dp-header {
@@ -35,7 +35,7 @@
 .dp-month-label {
   font-size: var(--fs-base);
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--text);
 }
 
 .dp-nav { display: flex; gap: 4px; }
@@ -48,13 +48,13 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: var(--fs-base);
-  color: #185fa5;
+  color: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.dp-nav-btn:hover { background: #e6f1fb; }
+.dp-nav-btn:hover { background: var(--blue-light); }
 
 .dp-weekdays {
   display: grid;
@@ -81,7 +81,7 @@
   background: transparent;
   border-radius: 8px;
   font-size: var(--fs-sm);
-  color: #1a1a2e;
+  color: var(--text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -94,12 +94,12 @@
 .dp-day--muted { color: #d1d9e0; }
 
 .dp-day--today {
-  border: 1.5px solid #185fa5;
+  border: 1.5px solid var(--blue);
   font-weight: 600;
 }
 
 .dp-day--selected {
-  background: #185fa5;
+  background: var(--blue);
   color: #ffffff;
   font-weight: 700;
 }
@@ -115,7 +115,7 @@
 .dp-footer-btn {
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: #185fa5;
+  color: var(--blue);
   background: transparent;
   border: none;
   cursor: pointer;
