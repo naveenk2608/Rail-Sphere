@@ -138,7 +138,6 @@
   .nav-links { display: none; }
   .nav-burger { display: inline-flex; }
   .nav-mobile { display: block; }
-  .nav-github { display: none; }
 }
 @media (max-width: 560px) {
   .nav-inner { gap: 12px; }

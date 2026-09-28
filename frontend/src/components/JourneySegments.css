@@ -1,0 +1,27 @@
+.js { padding: 18px 16px 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg); }
+.js-route { position: relative; height: 58px; margin: 0 18px 0 62px; }
+.js-line { position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: var(--border-sec); border-radius: 2px; }
+.js-stop { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.js-stop i { width: 9px; height: 9px; margin-top: 2px; border-radius: 50%; background: var(--white); border: 2px solid var(--border-sec); }
+.js-stop--key i { width: 14px; height: 14px; margin-top: 0; border-color: var(--blue); }
+.js-stop b { font-size: 11px; font-weight: 600; color: var(--text-sec); }
+.js-stop em { font-style: normal; font-size: 10.5px; color: var(--text-ter); white-space: nowrap; }
+
+.js-seat { display: flex; align-items: center; gap: 10px; margin: 6px 18px 0 0; }
+.js-seat-label { width: 52px; flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-sec); }
+.js-seat-track { position: relative; flex: 1; height: 34px; border-radius: 7px; background: var(--white); border: 1px solid var(--border); }
+.js-trip {
+  position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; font-size: var(--fs-2xs); font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden;
+  transform-origin: left center; animation: js-grow 0.7s var(--ease) both;
+}
+.js-trip--0 { background: var(--blue); animation-delay: 0.1s; }
+.js-trip--1 { background: #6a4ee6; animation-delay: 0.45s; margin-left: 2px; }
+@keyframes js-grow { from { transform: scaleX(0); opacity: 0; } to { transform: none; opacity: 1; } }
+.js-caption { margin-top: 12px; font-size: var(--fs-xs); color: var(--text-sec); line-height: 1.55; }
+
+@media (max-width: 480px) {
+  .js-route { margin-left: 46px; margin-right: 10px; }
+  .js-seat { margin-right: 10px; }
+  .js-seat-label { width: 38px; font-size: 10px; }
+}

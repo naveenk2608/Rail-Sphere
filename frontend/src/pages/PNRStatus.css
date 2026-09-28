@@ -69,3 +69,5 @@
   .ps-card-row { flex-direction: column; }
   .ps-pnr-block { text-align: left; }
 }
+.ps-pax-status { font-size: var(--fs-2xs); font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--green-bg); color: var(--green-text); white-space: nowrap; }
+.ps-pax-status.is-cancelled { background: var(--red-bg); color: var(--red); }

@@ -1,20 +1,35 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Icon, { GitHubMark } from "../components/Icon";
+import Icon from "../components/Icon";
+import JourneySegments from "../components/JourneySegments";
 import ArchitectureDiagram from "../components/landing/ArchitectureDiagram";
 import { useReveal } from "../hooks/useReveal";
 import { GITHUB_URL } from "../utils/site";
 import "./HowItWorks.css";
 
 const TOC = [
-  { id: "overview", label: "Overview" },
+  { group: "For travellers" },
+  { id: "booking", label: "Booking a ticket" },
+  { id: "availability", label: "How availability works" },
+  { id: "protected", label: "Your booking is protected" },
+  { id: "overnight", label: "Overnight trains" },
+  { group: "For developers" },
+  { id: "architecture", label: "Architecture" },
   { id: "lifecycle", label: "Life of a booking" },
-  { id: "segments", label: "Segment availability" },
+  { id: "segments", label: "Availability query" },
   { id: "concurrency", label: "Concurrency" },
   { id: "dates", label: "Dates and time zones" },
   { id: "data-model", label: "Data model" },
   { id: "api", label: "API reference" },
   { id: "run", label: "Run it locally" },
+];
+
+const BOOKING_STEPS = [
+  ["Search", "Enter where you're travelling from and to, the date you travel and, if you like, a class."],
+  ["Choose a train and class", "Compare departure and arrival times, duration, fares and availability. Open View details to see every stop."],
+  ["Pick your seats", "Choose up to five seats on the coach map. Seats already booked are greyed out."],
+  ["Passenger details and review", "Add each traveller, or quick-fill someone you've travelled with before, then check everything before you confirm."],
+  ["Get your ticket", "You get a PNR and an e-ticket to download, print or email, and you can track it anytime on PNR status."],
 ];
 
 // POST /api/bookings, in the order bookingController.createBooking runs it.
@@ -92,7 +107,7 @@ function useActiveSection(ids) {
   return active;
 }
 
-const TOC_IDS = TOC.map((t) => t.id);
+const TOC_IDS = TOC.filter((t) => t.id).map((t) => t.id);
 
 function Bar({ value, total, kind }) {
   return <span className={`hw-bar hw-bar--${kind}`} style={{ width: `${(value / total) * 100}%` }} />;
@@ -106,34 +121,88 @@ export default function HowItWorks() {
     <div className="hw" ref={ref}>
       <header className="hw-hero">
         <div className="container">
-          <p className="eyebrow">Engineering notes</p>
           <h1 className="hw-title">How Rail-Sphere works</h1>
           <p className="lede hw-lede">
-            The design decisions behind segment-level seat allocation, a checkout that
-            holds up under concurrent load, and dates that match the timetable. Every
-            claim here links back to code in the repository.
+            How booking works, how seat availability is worked out for your journey,
+            and what keeps your booking safe. Technical details for developers are
+            further down the page.
           </p>
           <div className="hw-hero-actions">
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn btn--primary">
-              <GitHubMark size={16} /> Source on GitHub
-            </a>
-            <Link to="/" className="btn btn--secondary">Try a search</Link>
+            <Link to="/" className="btn btn--primary"><Icon name="search" /> Search trains</Link>
+            <a href="#architecture" className="btn btn--secondary">Technical details</a>
           </div>
         </div>
       </header>
 
       <div className="container hw-layout">
         <nav className="hw-toc" aria-label="On this page">
-          <div className="hw-toc-title">On this page</div>
-          {TOC.map((t) => (
-            <a key={t.id} href={`#${t.id}`} className={active === t.id ? "is-active" : ""}
-              aria-current={active === t.id ? "location" : undefined}>{t.label}</a>
+          {TOC.map((t) => (t.group
+            ? <div key={t.group} className="hw-toc-group">{t.group}</div>
+            : <a key={t.id} href={`#${t.id}`} className={active === t.id ? "is-active" : ""}
+                aria-current={active === t.id ? "location" : undefined}>{t.label}</a>
           ))}
         </nav>
 
         <article className="hw-body">
-          <section id="overview" className="hw-section">
-            <h2>Overview</h2>
+          <section id="booking" className="hw-section">
+            <h2>Booking a ticket</h2>
+            <p>Five steps from search to e-ticket.</p>
+            <ol className="hw-steps">
+              {BOOKING_STEPS.map(([title, body], i) => (
+                <li key={title} className="reveal" data-delay={String(i % 3)}>
+                  <span className="hw-step-num mono">{i + 1}</span>
+                  <div><h3>{title}</h3><p>{body}</p></div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section id="availability" className="hw-section">
+            <h2>How availability works</h2>
+            <p>
+              Traditional systems can treat a seat as unavailable for the entire route
+              once someone books it. Rail-Sphere calculates seat availability for the
+              journey segment you select, from the station you board to the station
+              you get off.
+            </p>
+            <div className="reveal"><JourneySegments /></div>
+            <ul className="hw-points">
+              <li>The availability you see is for your stations and your date, so it matches what you can actually book.</li>
+              <li>A seat freed by someone who gets off earlier can be booked by a passenger boarding from that station.</li>
+              <li>The same seat is never given to two passengers whose journeys overlap.</li>
+            </ul>
+          </section>
+
+          <section id="protected" className="hw-section">
+            <h2>Your booking is protected</h2>
+            <ul className="hw-points">
+              <li>If two people choose the same seat at the same moment, only one booking goes through. The other person is asked to pick again, so nobody ends up sharing a seat.</li>
+              <li>Your fare is worked out when you book, from the distance you travel and the class you choose.</li>
+              <li>You can cancel a booking at any time before the train leaves your station.</li>
+              <li>Anyone with your 12-digit PNR can check its status without logging in. Your account itself is protected by your password.</li>
+            </ul>
+          </section>
+
+          <section id="overnight" className="hw-section">
+            <h2>Overnight trains</h2>
+            <p>
+              Some trains reach your station after midnight. The date you choose is always
+              the day you board, and your ticket shows the correct boarding and arrival dates.
+              For example, boarding the Howrah Express at Bhubaneswar at 03:20 on a Tuesday
+              means booking for Tuesday, even though the train left Visakhapatnam on Monday.
+            </p>
+          </section>
+
+          <div className="hw-divider">
+            <span>For developers</span>
+            <p>
+              The rest of this page explains the implementation. The source is on{" "}
+              <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>.
+            </p>
+          </div>
+
+          <section id="architecture" className="hw-section">
+            <h2>Architecture</h2>
             <p>
               A React single-page app talks to an Express REST API over JSON. The API owns every
               rule that matters (price, availability, who can cancel what) and keeps its state in
@@ -156,7 +225,7 @@ export default function HowItWorks() {
           </section>
 
           <section id="segments" className="hw-section">
-            <h2>Segment availability</h2>
+            <h2>Availability query</h2>
             <p>
               Each stop on a route has a sequence number. A booking stores the passenger's{" "}
               <code>from_seq</code> and <code>to_seq</code>, so a seat is only occupied on the
@@ -166,12 +235,11 @@ export default function HowItWorks() {
 AND existing.to_seq > requested.from_seq`}</code></pre>
             <p>
               Touching at a station is not an overlap: a passenger getting off at Vijayawada frees
-              the berth for someone boarding there. <code>idx_availability (coach_id, journey_date,
+              the seat for someone boarding there. <code>idx_availability (coach_id, journey_date,
               status, from_seq, to_seq)</code> covers the lookup, and <code>journey_date</code> and{" "}
               <code>status</code> are copied onto <code>seat_bookings</code> so the hot path never joins{" "}
               <code>bookings</code>.
             </p>
-            <Link to="/#segments" className="hw-inline-link">See it in the interactive demo <Icon name="arrow" size={15} /></Link>
           </section>
 
           <section id="concurrency" className="hw-section">
@@ -192,7 +260,7 @@ AND existing.to_seq > requested.from_seq`}</code></pre>
                 <div key={r.label} className="hw-result">
                   <div className="hw-result-head">
                     <span>{r.label}</span>
-                    <span className="mono">{r.requests} simultaneous requests, one berth</span>
+                    <span className="mono">{r.requests} simultaneous requests, one seat</span>
                   </div>
                   <div className="hw-bars" aria-hidden="true">
                     <Bar value={r.booked} total={r.requests} kind="ok" />

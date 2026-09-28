@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getUserFromToken, saveBookingProgress } from "../hooks/useAuth";
 import Icon from "../components/Icon";
+import Stepper from "../components/Stepper";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
 import { formatDate, stopDate } from "../utils/dates";
@@ -157,6 +158,7 @@ export default function SeatMap() {
               {fromCode} → {toCode} · {formatDate(stopDate(date, depOffset))} · {classDisplay(config, coachType)}
             </p>
           </div>
+          <Stepper current={1} />
         </div>
       </header>
 
@@ -187,14 +189,14 @@ export default function SeatMap() {
                 <div className="sm-legend" aria-hidden="true">
                   <span><i className="sm-leg sm-leg--avail" /> Available</span>
                   <span><i className="sm-leg sm-leg--sel" /> Selected</span>
-                  <span><i className="sm-leg sm-leg--booked" /> Taken for {fromCode}→{toCode}</span>
+                  <span><i className="sm-leg sm-leg--booked" /> Booked</span>
                 </div>
               </div>
 
               <div className="sm-coach-meta">
                 <span>Coach <b className="mono">{activeCoach?.coach_number}</b> · {classDisplay(config, coachType)}</span>
                 <span aria-live="polite">
-                  {seatsLoading ? "Checking availability…" : `${freeCount} of ${activeCoach?.total_seats} free for this stretch`}
+                  {seatsLoading ? "Checking availability…" : `${freeCount} of ${activeCoach?.total_seats} seats available`}
                 </span>
               </div>
 
@@ -235,9 +237,9 @@ export default function SeatMap() {
             </div>
 
             <div className="sm-selected-info">
-              <div className="sm-summary-label">Seats <span>{selectedSeats.length}/{MAX_SEATS}</span></div>
+              <div className="sm-summary-label">Your seats <span>{selectedSeats.length}/{MAX_SEATS}</span></div>
               {selectedSeats.length === 0
-                ? <span className="sm-sel-hint">Pick up to {MAX_SEATS} seats, across coaches if you like.</span>
+                ? <span className="sm-sel-hint">Choose up to {MAX_SEATS} seats. You can mix coaches.</span>
                 : <div className="sm-sel-chips">
                     {selectedSeats.map((s) => (
                       <span key={`${s.coach_id}-${s.seat_no}`} className="sm-sel-chip mono">

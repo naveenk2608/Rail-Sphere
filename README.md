@@ -23,7 +23,8 @@ A full-stack train ticket booking system with route-based partial seat allocatio
 - 🔐 **JWT Authentication** — Signup/login with hashed passwords (bcrypt) and protected routes
 - 💰 **Fare Calculation** — Distance-based fare lookup per coach class
 - 📱 **Responsive, accessible UI** — Plain CSS per component, no UI framework or icon font. Design tokens in one file, keyboard-navigable controls, WCAG AA contrast, and animations that respect `prefers-reduced-motion`
-- 🧭 **Landing page and engineering notes** — An interactive seat-overlap demo on `/`, and an architecture, data-model and API deep-dive on `/how-it-works`
+- 🧭 **Guided booking flow** — Search → train details → seats → passengers → review → e-ticket, with a progress stepper, a booking confirmation and a one-click PNR check
+- 📘 **How it works** — A plain-language guide for travellers, followed by an architecture, data-model and API deep-dive for developers on `/how-it-works`
 
 ---
 
@@ -97,25 +98,25 @@ Rail-Sphere/
         ├── App.jsx
         ├── main.jsx
         ├── components/
-        │   ├── landing/                # Landing-page sections
-        │   │   ├── Hero.jsx            # Headline, live search, seat timeline
-        │   │   ├── SegmentDemo.jsx     # Interactive overlap demo
-        │   │   ├── BookingFlow.jsx     # The five API steps of a booking
-        │   │   ├── Features.jsx        # Feature grid + stress-test chart
-        │   │   ├── Engineering.jsx     # Architecture + locking code
-        │   │   └── ArchitectureDiagram.jsx
-        │   ├── AuthLayout.jsx          # Split login/signup layout
+        │   ├── landing/
+        │   │   ├── Hero.jsx            # Headline and train search
+        │   │   └── ArchitectureDiagram.jsx # Used on /how-it-works
+        │   ├── AuthLayout.jsx          # Split login/signup layout with a sample ticket
+        │   ├── Modal.jsx / .css        # Accessible dialog (portal, focus return, Escape)
+        │   ├── TrainDetailsModal.jsx / .css # Route, stops, classes and fares for one train
+        │   ├── AvailabilityInfo.jsx    # "How availability works" link and modal
+        │   ├── JourneySegments.jsx / .css # One seat shared by two journeys
+        │   ├── Stepper.jsx / .css      # Booking progress steps
         │   ├── Icon.jsx                # Inline SVG icon set and logo
         │   ├── Footer.jsx / .css
         │   ├── SearchBox.jsx / .css
         │   ├── StationInput.jsx / .css # Keyboard-accessible autocomplete
         │   ├── DatePicker.jsx / .css
-        │   ├── RouteModal.jsx / .css
         │   ├── Navbar.jsx / .css       # Responsive nav with mobile menu
         │   └── Toast.jsx / .css
         ├── pages/
-        │   ├── HomePage.jsx            # Landing page
-        │   ├── HowItWorks.jsx          # Engineering deep-dive
+        │   ├── HomePage.jsx            # Search, value props, popular routes, PNR check
+        │   ├── HowItWorks.jsx          # Traveller guide + engineering deep-dive
         │   ├── SearchResults.jsx
         │   ├── SeatMap.jsx
         │   ├── PassengerDetails.jsx
@@ -131,9 +132,10 @@ Rail-Sphere/
         │   └── useDebounce.js
         ├── utils/
         │   ├── api.js               # fetch wrapper
+        │   ├── availability.js      # Seat count → "Available · N" / "Only N left" label
         │   ├── dates.js             # Timezone-safe date helpers
-        │   └── fareCalculator.js    # Fare preview from server config
-        ├── utils/site.js           # GitHub and project links
+        │   ├── fareCalculator.js    # Fare preview from server config
+        │   └── site.js              # GitHub and project links
         └── styles/
             └── global.css           # Design tokens, type scale, buttons, breakpoints
 ```

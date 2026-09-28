@@ -19,7 +19,7 @@
 .sr-date-day { font-size: var(--fs-sm); font-weight: 600; }
 .sr-date.is-active .sr-date-wd, .sr-date.is-active .sr-date-day { color: var(--blue-dark); }
 
-.sr-count { font-size: var(--fs-xs); color: var(--text-sec); margin-bottom: 14px; }
+.sr-count { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: var(--fs-sm); font-weight: 500; color: var(--text-sec); margin-bottom: 14px; }
 
 /* Train card */
 .sr-card {
@@ -38,44 +38,46 @@
 }
 .sr-train-name { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -0.02em; }
 .sr-departed { font-size: var(--fs-2xs); font-weight: 600; color: var(--text-sec); padding: 3px 8px; border-radius: 999px; background: var(--bg-sec); }
-.sr-view-route {
-  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
-  background: transparent; border: 1px solid var(--border); color: var(--text-sec);
-  border-radius: var(--radius-md); padding: 0 12px; min-height: 36px; font-size: var(--fs-xs); font-weight: 500;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-.sr-view-route:hover { color: var(--blue); border-color: var(--blue-border); background: var(--blue-light); }
 
 .sr-timing { display: flex; align-items: center; gap: 20px; margin: 18px 0 20px; max-width: 640px; }
 .sr-time-block { min-width: 64px; }
 .sr-time-block--right { text-align: right; }
 .sr-time { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
 .sr-stn { font-size: var(--fs-xs); color: var(--text-sec); margin-top: 3px; font-weight: 500; }
+.sr-stn .mono { color: var(--text-ter); font-size: 11px; margin-left: 2px; }
 .sr-dur-block { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .sr-dur-line { position: relative; width: 100%; height: 2px; background: var(--border); border-radius: 2px; }
 .sr-dur-line i { position: absolute; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; border: 2px solid var(--blue); background: var(--white); }
 .sr-dur-line i:first-child { left: 0; }
 .sr-dur-line i:last-child { right: 0; background: var(--blue); }
-.sr-dur { font-size: var(--fs-xs); color: var(--text-sec); font-weight: 500; }
+.sr-dur { font-size: var(--fs-xs); color: var(--text-sec); font-weight: 500; white-space: nowrap; }
 .sr-dur span { color: var(--text-ter); font-weight: 400; }
 
-/* Class chips */
-.sr-classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding-top: 18px; border-top: 1px solid var(--border); }
+/* Class chips: a radio group; the chosen class drives "Book now". */
+.sr-classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding-top: 18px; border-top: 1px solid var(--border); }
 .sr-class-chip {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; text-align: left;
   padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--white);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s var(--ease);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.sr-class-chip:not(:disabled):hover { border-color: var(--blue); box-shadow: var(--ring); transform: translateY(-1px); }
-.sr-class-chip--full { background: var(--bg); cursor: not-allowed; }
-.sr-chip-top { display: flex; align-items: baseline; gap: 8px; }
-.sr-chip-type { font-size: var(--fs-sm); font-weight: 600; color: var(--blue); }
-.sr-chip-label { font-size: var(--fs-2xs); color: var(--text-sec); }
-.sr-chip-seats { font-size: var(--fs-xs); font-weight: 500; color: var(--green-text); }
-.sr-chip-seats.is-low { color: #b45309; }
-.sr-chip-seats.is-full { color: var(--text-ter); }
+.sr-class-chip:hover { border-color: var(--border-sec); }
+.sr-class-chip.is-chosen { border-color: var(--blue); box-shadow: var(--ring); background: #fafcff; }
+.sr-class-chip--full { background: var(--bg); }
+.sr-class-chip--full.is-chosen { box-shadow: none; border-color: var(--border-sec); }
+.sr-chip-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; }
+.sr-chip-label { font-size: var(--fs-sm); font-weight: 600; }
+.sr-chip-type { font-size: var(--fs-2xs); font-weight: 600; color: var(--text-ter); }
+.sr-chip-seats { font-size: var(--fs-xs); font-weight: 600; }
 .sr-chip-fare { font-size: var(--fs-base); font-weight: 600; }
-.sr-class-chip--full .sr-chip-type, .sr-class-chip--full .sr-chip-fare { color: var(--text-ter); }
+.sr-class-chip--full .sr-chip-fare, .sr-class-chip--full .sr-chip-label { color: var(--text-ter); }
+
+.sr-card-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+.sr-foot-fare { display: flex; align-items: baseline; gap: 8px; font-size: var(--fs-xs); color: var(--text-sec); }
+.sr-foot-fare .mono { font-size: var(--fs-xl); font-weight: 600; color: var(--text); }
+.sr-foot-actions { display: flex; gap: 10px; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 600px) {
@@ -83,5 +85,9 @@
   .sr-timing { gap: 12px; }
   .sr-time { font-size: var(--fs-xl); }
   .sr-classes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sr-view-route { padding: 0 10px; }
+  .sr-foot-actions { width: 100%; }
+  .sr-foot-actions .btn { flex: 1; }
+  /* Phones: the station code alone keeps the timing row on one line. */
+  .sr-stn-name { display: none; }
+  .sr-stn .mono { margin-left: 0; color: var(--text-sec); font-size: var(--fs-xs); }
 }

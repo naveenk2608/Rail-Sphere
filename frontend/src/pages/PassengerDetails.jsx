@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "../components/Icon";
+import Stepper from "../components/Stepper";
 import Toast from "../components/Toast";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
@@ -54,6 +55,8 @@ export default function PassengerDetails() {
   const [errors,     setErrors]     = useState(() => seats.map(() => ({})));
   const [toast,      setToast]      = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // "details" to fill in passengers, then "review" before confirming.
+  const [phase,      setPhase]      = useState("details");
 
   useEffect(() => {
     if (seats.length === 0) navigate("/", { replace: true });
@@ -99,8 +102,14 @@ export default function PassengerDetails() {
     return errs.every((e) => Object.keys(e).length === 0);
   }
 
-  async function handleSubmit() {
+  function goToReview() {
     if (!validate()) return;
+    setPhase("review");
+    window.scrollTo(0, 0);
+  }
+
+  async function handleSubmit() {
+    if (!validate()) { setPhase("details"); return; }
     setSubmitting(true);
     try {
       const res = await api.createBooking({
@@ -116,11 +125,8 @@ export default function PassengerDetails() {
           gender: p.gender,
         })),
       });
-      // Shown by the ticket page: a toast set here would unmount immediately.
-      navigate(`/ticket/${res.booking_id}`, {
-        replace: true,
-        state: { toast: "Booking confirmed!" },
-      });
+      // The ticket page shows its confirmation view for a booking just made.
+      navigate(`/ticket/${res.booking_id}`, { replace: true, state: { booked: true } });
     } catch (err) {
       setToast({ message: err.message, type: "error" });
       setSubmitting(false);
@@ -139,25 +145,61 @@ export default function PassengerDetails() {
 
       <header className="page-head">
         <div className="page-head-inner">
-          <button type="button" className="page-back" onClick={() => navigate(-1)} aria-label="Back to seats">
+          <button type="button" className="page-back"
+            onClick={() => (phase === "review" ? setPhase("details") : navigate(-1))}
+            aria-label={phase === "review" ? "Back to passenger details" : "Back to seats"}>
             <Icon name="arrow" size={17} className="flip" />
           </button>
           <div>
-            <h1 className="page-title">Passenger details</h1>
+            <h1 className="page-title">{phase === "review" ? "Review your journey" : "Passenger details"}</h1>
             <p className="page-sub">{trainName} · {fromCode} → {toCode} · {boardingDate}</p>
           </div>
-          <ol className="pd-stepper" aria-label="Booking progress">
-            <li className="pd-step pd-step--done"><Icon name="check" size={13} strokeWidth={2.5} /> Search</li>
-            <li className="pd-step pd-step--done"><Icon name="check" size={13} strokeWidth={2.5} /> Seats</li>
-            <li className="pd-step pd-step--active" aria-current="step">Passengers</li>
-            <li className="pd-step">Confirm</li>
-          </ol>
+          <Stepper current={phase === "review" ? 3 : 2} />
         </div>
       </header>
 
       <div className="page-body pd-body">
         <div className="pd-left">
-          {passengers.map((pax, idx) => (
+          {phase === "review" && (
+            <section className="pd-review" aria-label="Journey and passengers">
+              <div className="pd-review-journey">
+                <div>
+                  <div className="pd-review-code mono">{fromCode}</div>
+                  <div className="pd-review-time mono">{dep}</div>
+                </div>
+                <div className="pd-review-mid">
+                  <span className="pd-review-line" aria-hidden="true" />
+                  <span>{trainNumber} · {trainName}</span>
+                  <span className="pd-review-date">{boardingDate}</span>
+                </div>
+                <div className="pd-review-right">
+                  <div className="pd-review-code mono">{toCode}</div>
+                  <div className="pd-review-time mono">{arr}{shift && <span className="day-shift">{shift}</span>}</div>
+                </div>
+              </div>
+              <div className="table-scroll">
+                <table className="pd-review-table">
+                  <thead><tr><th scope="col">Passenger</th><th scope="col">Age</th><th scope="col">Gender</th><th scope="col">Coach</th><th scope="col">Seat</th></tr></thead>
+                  <tbody>
+                    {passengers.map((p, i) => (
+                      <tr key={i}>
+                        <td>{p.passenger_name.trim()}</td>
+                        <td>{p.age}</td>
+                        <td>{GENDER_OPTIONS.find((g) => g.value === p.gender)?.label}</td>
+                        <td className="mono">{seats[i].coach_number}</td>
+                        <td className="mono">{seats[i].seat_no}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" className="btn btn--secondary btn--sm pd-edit" onClick={() => setPhase("details")}>
+                Edit passengers
+              </button>
+            </section>
+          )}
+
+          {phase === "details" && passengers.map((pax, idx) => (
             <div key={idx} className="pd-pax-card">
               <div className="pd-pax-header">
                 <div className="pd-pax-title">Passenger {idx + 1}</div>
@@ -232,7 +274,7 @@ export default function PassengerDetails() {
             <div className="pd-journey-title">Journey details</div>
             <div className="pd-journey-row"><span>Train</span><span>{trainNumber}</span></div>
             <div className="pd-journey-row"><span>Class</span><span>{classDisplay(config, coachType)}</span></div>
-            <div className="pd-journey-row"><span>Boarding</span><span>{boardingDate}</span></div>
+            <div className="pd-journey-row"><span>Date</span><span>{boardingDate}</span></div>
             <div className="pd-journey-row"><span>Dep</span><span>{dep}</span></div>
             <div className="pd-journey-row">
               <span>Arr</span>
@@ -240,10 +282,20 @@ export default function PassengerDetails() {
             </div>
           </div>
 
-          <button type="button" className="btn btn--primary btn--lg pd-confirm-btn" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Confirming…" : <>Confirm booking <Icon name="lock" /></>}
-          </button>
-          <p className="pd-secure">Seats are re-checked and the fare recomputed on the server when you confirm.</p>
+          {phase === "details" ? (
+            <button type="button" className="btn btn--primary btn--lg pd-confirm-btn" onClick={goToReview}>
+              Continue to review <Icon name="arrow" />
+            </button>
+          ) : (
+            <button type="button" className="btn btn--primary btn--lg pd-confirm-btn" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Booking…" : <>Confirm booking <Icon name="lock" /></>}
+            </button>
+          )}
+          <p className="pd-secure">
+            {phase === "details"
+              ? "You can check everything before you book."
+              : "If a seat is taken before you confirm, we'll ask you to pick another."}
+          </p>
         </div>
       </div>
     </div>

@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Icon, { GitHubMark } from "../components/Icon";
-import BookingFlow from "../components/landing/BookingFlow";
-import Engineering from "../components/landing/Engineering";
-import Features from "../components/landing/Features";
+import Icon from "../components/Icon";
 import Hero from "../components/landing/Hero";
-import SegmentDemo from "../components/landing/SegmentDemo";
 import { getUserFromToken } from "../hooks/useAuth";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { useReveal } from "../hooks/useReveal";
 import { api } from "../utils/api";
 import { formatDate, formatTime, departureDateTime, dayShift, stopDate, toDateString } from "../utils/dates";
 import { classDisplay } from "../utils/fareCalculator";
-import { GITHUB_URL } from "../utils/site";
 import "./HomePage.css";
 
 // Only the station pair lives here. Fares, timings and availability come
@@ -99,14 +94,13 @@ function PopularRoutes() {
   }
 
   return (
-    <section className="section routes" ref={ref} aria-labelledby="routes-title">
+    <section className="home-section routes" ref={ref} aria-labelledby="routes-title">
       <div className="container">
         <div className="routes-head reveal">
           <div>
-            <p className="eyebrow">Try it</p>
-            <h2 id="routes-title" className="h2">Routes in the sample timetable</h2>
+            <h2 id="routes-title" className="home-h2">Popular routes</h2>
           </div>
-          <p className="routes-note">Each one runs a live search for today against the API.</p>
+          <p className="routes-note">See today's trains, timings and seat availability.</p>
         </div>
         <div className="routes-grid">
           {POPULAR.map((r, i) => (
@@ -130,25 +124,51 @@ function PopularRoutes() {
   );
 }
 
-function ClosingCta() {
+const VALUE = [
+  { icon: "search", title: "Fast train search", body: "Every train between your stations on the day you travel, with timings, duration and fares side by side." },
+  { icon: "seat", title: "Real-time availability", body: "Seat counts for each class are live, and worked out for the exact journey you choose." },
+  { icon: "lock", title: "Secure booking", body: "Pick your seats on the coach map and confirm in one step. A seat is never sold twice for the same journey." },
+  { icon: "ticket", title: "PNR tracking", body: "Check any booking with its 12-digit PNR, no login needed. Email or print your e-ticket anytime." },
+];
+
+function ValueProps() {
   const ref = useReveal();
   return (
-    <section className="section--tight closing" ref={ref}>
+    <section className="home-section value" ref={ref} aria-labelledby="value-title">
+      <h2 id="value-title" className="visually-hidden">Why book with Rail-Sphere</h2>
+      <div className="container value-grid">
+        {VALUE.map((v, i) => (
+          <div key={v.title} className="value-item reveal" data-delay={String(i % 4)}>
+            <span className="value-icon"><Icon name={v.icon} size={20} /></span>
+            <h3>{v.title}</h3>
+            <p>{v.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PnrBand() {
+  const ref = useReveal();
+  const navigate = useNavigate();
+  const [pnr, setPnr] = useState("");
+  const valid = pnr.length === 12;
+  return (
+    <section className="home-section pnr-band-wrap" ref={ref}>
       <div className="container">
-        <div className="closing-card reveal">
+        <div className="pnr-band reveal">
           <div>
-            <h2 className="closing-title">Every line of this is on GitHub.</h2>
-            <p className="closing-sub">
-              The schema, the locking, the stress test and this page. Clone it, load
-              <span className="mono"> seed.sql</span>, and book a berth in about five minutes.
-            </p>
+            <h2 className="pnr-band-title">Check your PNR status</h2>
+            <p className="pnr-band-sub">See your train, coach, seat and booking status. No login needed.</p>
           </div>
-          <div className="closing-actions">
-            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="btn btn--light btn--lg">
-              <GitHubMark size={17} /> Star on GitHub
-            </a>
-            <Link to="/pnr-status" className="btn btn--ghost-dark btn--lg">Check a PNR</Link>
-          </div>
+          <form className="pnr-band-form" onSubmit={(e) => { e.preventDefault(); if (valid) navigate(`/pnr-status?pnr=${pnr}`); }}>
+            <label htmlFor="home-pnr" className="visually-hidden">12-digit PNR</label>
+            <input id="home-pnr" className="pnr-band-input mono" placeholder="Enter 12-digit PNR" inputMode="numeric"
+              autoComplete="off" value={pnr} maxLength={12}
+              onChange={(e) => setPnr(e.target.value.replace(/\D/g, "").slice(0, 12))} />
+            <button type="submit" className="btn btn--light btn--lg" disabled={!valid}>Check status</button>
+          </form>
         </div>
       </div>
     </section>
@@ -183,12 +203,9 @@ export default function HomePage() {
     <div className="home">
       <Hero />
       {user && <UpcomingJourneys bookings={upcoming} config={config} />}
-      <SegmentDemo />
-      <BookingFlow />
-      <Features />
-      <Engineering />
+      <ValueProps />
       <PopularRoutes />
-      <ClosingCta />
+      <PnrBand />
     </div>
   );
 }

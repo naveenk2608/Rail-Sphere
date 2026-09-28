@@ -13,11 +13,11 @@ const COLUMNS = [
     ],
   },
   {
-    title: "Engineering",
+    title: "Help",
     links: [
       { label: "How it works", to: "/how-it-works" },
-      { label: "Data model", to: "/how-it-works#data-model" },
-      { label: "API reference", to: "/how-it-works#api" },
+      { label: "How availability works", to: "/how-it-works#availability" },
+      { label: "Technical details", to: "/how-it-works#architecture" },
     ],
   },
   {
@@ -39,8 +39,8 @@ export default function Footer() {
             <Logo size={26} /><span>Rail-Sphere</span>
           </Link>
           <p>
-            Train reservations with seats sold per route segment and a
-            checkout that can't double‑book.
+            Search trains, book your seats and track your PNR,
+            all in one place.
           </p>
           <a href={GITHUB_URL} className="footer-gh" target="_blank" rel="noreferrer">
             <GitHubMark size={16} /> naveenk2608/Rail-Sphere

@@ -10,7 +10,7 @@ import StationInput from "./StationInput";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const ALL_OPTION = { coach_type: "ALL", label: "All Class" };
+const ALL_OPTION = { coach_type: "ALL", label: "All classes" };
 
 export default function SearchBox({ defaultValues }) {
   const navigate = useNavigate();
@@ -93,10 +93,10 @@ export default function SearchBox({ defaultValues }) {
 
         <div className="sb-cell sb-cell--date" ref={dateCellRef}
           role="button" tabIndex={0} aria-haspopup="dialog" aria-expanded={showDatePicker}
-          aria-label={`Boarding date: ${fmt.weekday} ${fmt.day} ${fmt.month} 20${fmt.year}. Change date`}
+          aria-label={`Travel date: ${fmt.weekday} ${fmt.day} ${fmt.month} 20${fmt.year}. Change date`}
           onKeyDown={(e) => onCellKey(e, () => { setShowDP((p) => !p); setShowCM(false); })}
           onClick={() => { setShowDP((p) => !p); setShowCM(false); }}>
-          <div className="sb-cell-label">Boarding date</div>
+          <div className="sb-cell-label">Date</div>
           <div className="sb-date-big">
             <span className="sb-date-day">{fmt.day}</span>
             <span className="sb-date-month">{fmt.month}'{fmt.year}</span>
@@ -139,7 +139,7 @@ export default function SearchBox({ defaultValues }) {
 
       <div className="sb-search-row">
         {error ? <div className="sb-error" role="alert">{error}</div>
-          : <div className="sb-note">Seats are checked for your stretch of the route only.</div>}
+          : <div className="sb-note">Live seat availability and fares for every class.</div>}
         <button type="button" className="btn btn--primary btn--lg sb-search-btn" onClick={handleSearch}>
           <Icon name="search" /> Search trains
         </button>

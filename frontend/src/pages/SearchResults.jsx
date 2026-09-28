@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Icon from "../components/Icon";
-import RouteModal from "../components/RouteModal";
+import AvailabilityInfo from "../components/AvailabilityInfo";
+import TrainDetailsModal from "../components/TrainDetailsModal";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
+import { availability } from "../utils/availability";
 import { classDisplay } from "../utils/fareCalculator";
 import { formatDate, formatTime, durationLabel, hasDeparted, dayShift, parseLocalDate, toDateString } from "../utils/dates";
 import "./SearchResults.css";
-
-const LOW_SEATS = 20;
 
 // A week of boarding dates around the one searched, never before today.
 function dateStrip(dateStr) {
@@ -58,7 +58,9 @@ export default function SearchResults() {
   const [trains,  setTrains]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
-  const [route,   setRoute]   = useState(null);
+  const [details, setDetails] = useState(null);
+  // Class picked on each card, keyed by train id.
+  const [picked,  setPicked]  = useState({});
   const datesRef = useRef(null);
 
   // Keep the selected day visible in the strip on narrow screens. Scrolls
@@ -165,14 +167,20 @@ export default function SearchResults() {
         )}
 
         {!loading && !error && trains.length > 0 && (
-          <p className="sr-count">
-            {trains.length} {trains.length === 1 ? "train" : "trains"} · seats counted for {fromCode} → {toCode} only
-          </p>
+          <div className="sr-count">
+            <span>{trains.length} {trains.length === 1 ? "train" : "trains"} found</span>
+            <AvailabilityInfo />
+          </div>
         )}
 
         {!loading && trains.map((train) => {
           const departed = hasDeparted(train.journey_date, train.departure_time, train.departure_day_offset);
           const shift = dayShift(train.departure_day_offset, train.arrival_day_offset);
+          // Default to the class the user searched for, else the first one with seats.
+          const fallback = train.classes.find((c) => c.coach_type === cls && c.available_seats > 0)
+            || train.classes.find((c) => c.available_seats > 0) || train.classes[0];
+          const chosen = train.classes.find((c) => c.coach_type === picked[train.train_id]) || fallback;
+          const chosenAvail = chosen ? availability(chosen.available_seats, departed) : null;
           return (
             <article key={train.train_id} className={`sr-card ${departed ? "sr-card--departed" : ""}`}>
               <div className="sr-card-top">
@@ -181,76 +189,83 @@ export default function SearchResults() {
                   <h2 className="sr-train-name">{train.train_name}</h2>
                   {departed && <span className="sr-departed">Departed</span>}
                 </div>
-                <button type="button" className="sr-view-route"
-                  onClick={() => setRoute({
-                    trainId: train.train_id,
-                    trainName: `${train.train_number} · ${train.train_name}`,
-                    fromSeq: train.from_seq,
-                    toSeq: train.to_seq,
-                  })}>
-                  <Icon name="route" size={15} /> Route
-                </button>
               </div>
 
               <div className="sr-timing">
                 <div className="sr-time-block">
                   <div className="sr-time mono">{formatTime(train.departure_time)}</div>
-                  <div className="sr-stn">{fromCode}</div>
+                  <div className="sr-stn"><span className="sr-stn-name">{fromName || fromCode}</span> <span className="mono">{fromCode}</span></div>
                 </div>
-                <div className="sr-dur-block" aria-label={`Journey time ${durationLabel(train.departure_time, train.arrival_time, train.departure_day_offset, train.arrival_day_offset)}, ${train.distance} km`}>
+                <div className="sr-dur-block">
                   <div className="sr-dur-line" aria-hidden="true"><i /><i /></div>
                   <div className="sr-dur">
                     {durationLabel(train.departure_time, train.arrival_time, train.departure_day_offset, train.arrival_day_offset)}
-                    <span> · {train.distance} km</span>
                   </div>
                 </div>
                 <div className="sr-time-block sr-time-block--right">
                   <div className="sr-time mono">
                     {formatTime(train.arrival_time)}
-                    {shift && <span className="day-shift">{shift}</span>}
+                    {shift && <span className="day-shift" title="Arrives the next day">{shift}</span>}
                   </div>
-                  <div className="sr-stn">{toCode}</div>
+                  <div className="sr-stn"><span className="sr-stn-name">{toName || toCode}</span> <span className="mono">{toCode}</span></div>
                 </div>
               </div>
 
-              <div className="sr-classes">
+              <div className="sr-classes" role="radiogroup" aria-label={`Class on ${train.train_name}`}>
                 {train.classes.map((info) => {
-                  const full = info.available_seats === 0;
-                  const disabled = full || departed;
-                  const low = !full && info.available_seats <= LOW_SEATS;
+                  const a = availability(info.available_seats, departed);
+                  const isChosen = chosen?.coach_type === info.coach_type;
                   return (
                     <button
                       key={info.coach_type}
                       type="button"
-                      className={`sr-class-chip ${disabled ? "sr-class-chip--full" : ""}`}
-                      disabled={disabled}
-                      onClick={() => !disabled && handleClassSelect(train, info.coach_type)}
-                      aria-label={`${info.label}, ${departed ? "departed" : full ? "full" : `${info.available_seats} seats`}, ₹${info.fare_per_person} per person`}
+                      role="radio"
+                      aria-checked={isChosen}
+                      className={`sr-class-chip ${isChosen ? "is-chosen" : ""} ${a.bookable ? "" : "sr-class-chip--full"}`}
+                      onClick={() => setPicked((p) => ({ ...p, [train.train_id]: info.coach_type }))}
                     >
                       <span className="sr-chip-top">
-                        <span className="sr-chip-type mono">{info.coach_type}</span>
                         <span className="sr-chip-label">{info.label}</span>
+                        <span className="sr-chip-type mono">{info.coach_type}</span>
                       </span>
-                      <span className={`sr-chip-seats ${low ? "is-low" : ""} ${full ? "is-full" : ""}`}>
-                        {departed ? "Departed" : full ? "Full" : `${info.available_seats} available`}
-                      </span>
+                      <span className={`sr-chip-seats tone-${a.tone}`}>{a.text}</span>
                       <span className="sr-chip-fare mono">₹{info.fare_per_person}</span>
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="sr-card-foot">
+                <div className="sr-foot-fare">
+                  {chosen && <>
+                    <span className="mono">₹{chosen.fare_per_person}</span>
+                    <span>per person · {chosen.label}</span>
+                  </>}
+                </div>
+                <div className="sr-foot-actions">
+                  <button type="button" className="btn btn--secondary" onClick={() => setDetails(train)}>
+                    View details
+                  </button>
+                  <button type="button" className="btn btn--primary" disabled={!chosenAvail?.bookable}
+                    onClick={() => handleClassSelect(train, chosen.coach_type)}>
+                    Book now <Icon name="arrow" />
+                  </button>
+                </div>
               </div>
             </article>
           );
         })}
       </div>
 
-      {route && (
-        <RouteModal
-          trainId={route.trainId}
-          trainName={route.trainName}
-          fromSeq={route.fromSeq}
-          toSeq={route.toSeq}
-          onClose={() => setRoute(null)}
+      {details && (
+        <TrainDetailsModal
+          train={details}
+          fromCode={fromCode}
+          toCode={toCode}
+          boardingDate={date}
+          departed={hasDeparted(details.journey_date, details.departure_time, details.departure_day_offset)}
+          onBook={(coachType) => handleClassSelect(details, coachType)}
+          onClose={() => setDetails(null)}
         />
       )}
     </div>

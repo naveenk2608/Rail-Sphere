@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Icon from "../components/Icon";
+import { useClassConfig } from "../hooks/useClassConfig";
+import { classDisplay } from "../utils/fareCalculator";
 import { api } from "../utils/api";
 import { formatDate, formatTime, stopDate, dayShift } from "../utils/dates";
 import "./PNRStatus.css";
@@ -11,17 +14,19 @@ function fmtDate(d) {
 }
 
 export default function PNRStatus() {
-  const [pnr,     setPnr]     = useState("");
+  const [params, setParams] = useSearchParams();
+  const initial = (params.get("pnr") || "").replace(/\D/g, "").slice(0, PNR_LENGTH);
+  const [pnr,     setPnr]     = useState(initial);
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+  const config = useClassConfig();
 
-  async function handleSearch(e) {
-    e.preventDefault();
-    if (pnr.trim().length !== PNR_LENGTH) { setError(`Enter a valid ${PNR_LENGTH}-digit PNR.`); return; }
+  async function lookup(value) {
+    if (value.length !== PNR_LENGTH) { setError(`Enter a valid ${PNR_LENGTH}-digit PNR.`); return; }
     setError(""); setBooking(null); setLoading(true);
     try {
-      const data = await api.getByPNR(pnr.trim());
+      const data = await api.getByPNR(value);
       setBooking(data);
     } catch (err) {
       setError(err.message);
@@ -30,6 +35,20 @@ export default function PNRStatus() {
     }
   }
 
+  function handleSearch(e) {
+    e.preventDefault();
+    const value = pnr.trim();
+    // Keep the PNR in the URL so the result can be bookmarked or shared.
+    if (value.length === PNR_LENGTH) setParams({ pnr: value }, { replace: true });
+    lookup(value);
+  }
+
+  // Arriving from a link such as /pnr-status?pnr=123456789012 checks it straight away.
+  useEffect(() => {
+    if (initial.length === PNR_LENGTH) lookup(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on first load
+  }, []);
+
   const cancelled = booking?.booking_status === "CANCELLED";
   const shift = booking ? dayShift(booking.departure_day_offset, booking.arrival_day_offset) : "";
 
@@ -37,7 +56,7 @@ export default function PNRStatus() {
     <div className="ps-page">
       <div className="ps-body">
         <div className="ps-hero">
-          <h1 className="ps-title">PNR Status</h1>
+          <h1 className="ps-title">PNR status</h1>
           <p className="ps-sub">Anyone with the PNR can check a booking. No login needed.</p>
 
           <form className="ps-form" onSubmit={handleSearch}>
@@ -65,7 +84,7 @@ export default function PNRStatus() {
                 <div className="ps-card-row">
                   <div>
                     <div className="ps-train-name">{booking.train_name}</div>
-                    <div className="ps-train-no">{booking.train_number}</div>
+                    <div className="ps-train-no">{booking.train_number} · {classDisplay(config, booking.coach_type)}</div>
                   </div>
                   <div className="ps-pnr-block">
                     <div className="ps-pnr-label">PNR</div>
@@ -104,7 +123,7 @@ export default function PNRStatus() {
                 <div className="table-scroll">
                 <table className="ps-table">
                   <thead>
-                    <tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Coach</th><th>Seat</th></tr>
+                    <tr><th>#</th><th>Name</th><th>Age</th><th>Gender</th><th>Coach</th><th>Seat</th><th>Status</th></tr>
                   </thead>
                   <tbody>
                     {booking.passengers.map((p, i) => (
@@ -115,6 +134,11 @@ export default function PNRStatus() {
                         <td>{p.gender === "M" ? "Male" : p.gender === "F" ? "Female" : "Other"}</td>
                         <td>{p.coach_number}</td>
                         <td>{p.seat_no}</td>
+                        <td>
+                          <span className={`ps-pax-status ${p.status === "CANCELLED" ? "is-cancelled" : ""}`}>
+                            {p.status === "CANCELLED" ? "Cancelled" : "Confirmed"}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

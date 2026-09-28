@@ -127,8 +127,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 
 main { flex: 1; }
 
-/* Route changes fade in rather than snapping. */
-.route-view { animation: route-in 0.35s var(--ease) both; }
+/* Route changes fade in rather than snapping. Opacity only, and no fill:
+   an animated or held transform here would become the containing block for
+   every position: fixed child (bottom bars, toasts) and trap them in the page. */
+.route-view { animation: route-fade 0.3s var(--ease); }
+@keyframes route-fade { from { opacity: 0; } }
 @keyframes route-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ------------------------------------------------------------------
@@ -285,3 +288,19 @@ main { flex: 1; }
 /* The title block next to the back button takes the remaining width and
    truncates, rather than wrapping onto its own line on phones. */
 .page-head-inner > .page-back + * { flex: 1 1 0; min-width: 0; }
+
+/* "How availability works" trigger and explainer text */
+.avail-link {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 0;
+  background: none; border: none; font-size: var(--fs-xs); font-weight: 500; color: var(--blue);
+}
+.avail-link:hover { text-decoration: underline; }
+.avail-p { font-size: var(--fs-sm); color: var(--text-sec); line-height: 1.65; margin-bottom: 16px; }
+.avail-p--muted { margin: 14px 0 0; font-size: var(--fs-xs); color: var(--text-ter); }
+.page-head-inner > .stepper { margin-left: auto; }
+@media (max-width: 980px) { .page-head-inner > .stepper { margin-left: 0; width: 100%; } }
+
+/* Availability tones: Available / Only N left / Not available */
+.tone-ok { color: var(--green-text); }
+.tone-low { color: #a55200; }
+.tone-off { color: var(--text-ter); }

@@ -101,3 +101,21 @@
   .tk-card { box-shadow: none; border: 1px solid #ccc; }
   .tk-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Confirmation, shown right after booking */
+.tk-confirm {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px 18px;
+  padding: 20px 22px; margin-bottom: 18px; border-radius: var(--radius-xl);
+  background: var(--white); border: 1px solid #cbe8d6; box-shadow: 0 0 0 4px var(--green-bg);
+  animation: route-in 0.4s var(--ease) both;
+}
+.tk-confirm-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--green); color: #fff; }
+.tk-confirm-text h2 { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -0.02em; }
+.tk-confirm-text p { font-size: var(--fs-sm); color: var(--text-sec); margin-top: 2px; }
+.tk-confirm-pnr .mono { font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
+.tk-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .tk-confirm { grid-template-columns: auto minmax(0, 1fr); }
+  .tk-confirm-actions { grid-column: 1 / -1; }
+  .tk-confirm-actions .btn { flex: 1; }
+}

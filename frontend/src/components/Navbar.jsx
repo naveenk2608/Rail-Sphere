@@ -3,8 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getUserFromToken } from "../hooks/useAuth";
 import { api } from "../utils/api";
 import { departureDateTime } from "../utils/dates";
-import { GITHUB_URL } from "../utils/site";
-import Icon, { GitHubMark, Logo } from "./Icon";
+import Icon, { Logo } from "./Icon";
 import "./Navbar.css";
 
 function buildNotifications(bookings) {
@@ -133,11 +132,6 @@ export default function Navbar({ authKey }) {
         </nav>
 
         <div className="nav-actions">
-          <a href={GITHUB_URL} className="nav-icon-btn nav-github" target="_blank" rel="noreferrer"
-            aria-label="Rail-Sphere on GitHub">
-            <GitHubMark size={18} />
-          </a>
-
           {user ? (
             <>
               <div className="nav-notif">
@@ -216,9 +210,6 @@ export default function Navbar({ authKey }) {
               <Icon name="arrow" size={16} />
             </NavLink>
           ))}
-          <a href={GITHUB_URL} className="nav-mobile-link" target="_blank" rel="noreferrer">
-            Source on GitHub <GitHubMark size={16} />
-          </a>
           {!user && (
             <div className="nav-mobile-auth">
               <Link to="/login" className="btn btn--secondary">Log in</Link>
