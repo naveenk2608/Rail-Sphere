@@ -7,7 +7,9 @@ function displayText(station) {
   return station ? `${station.station_name} (${station.station_code})` : "";
 }
 
-export default function StationInput({ label, value, onChange }) {
+let nextId = 0;
+
+export default function StationInput({ label, ariaLabel, value, onChange }) {
   const [query,   setQuery]   = useState(displayText(value));
   const [results, setResults] = useState([]);
   const [open,    setOpen]    = useState(false);
@@ -16,6 +18,8 @@ export default function StationInput({ label, value, onChange }) {
   const ref = useRef(null);
   const requestIdRef = useRef(0);
   const typingRef = useRef(false);
+  const [active, setActive] = useState(-1);
+  const [listId] = useState(() => `station-list-${++nextId}`);
 
   // Mirror changes the parent makes (e.g. the swap button). Skipped while the
   // user is typing, otherwise their own keystrokes would be overwritten.
@@ -41,6 +45,7 @@ export default function StationInput({ label, value, onChange }) {
       .then((data) => {
         if (requestIdRef.current !== currentId) return;
         setResults(data);
+        setActive(data.length ? 0 : -1);
         setOpen(true);
       })
       .catch(() => {})
@@ -73,7 +78,18 @@ export default function StationInput({ label, value, onChange }) {
     onChange(station);
     setOpen(false);
     setResults([]);
+    setActive(-1);
   }
+
+  function onKeyDown(e) {
+    if (!open || results.length === 0) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % results.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + results.length) % results.length); }
+    else if (e.key === "Enter" && active >= 0) { e.preventDefault(); select(results[active]); }
+    else if (e.key === "Escape") { setOpen(false); }
+  }
+
+  const expanded = open && results.length > 0;
 
   return (
     <div ref={ref} className="si-wrapper">
@@ -82,15 +98,25 @@ export default function StationInput({ label, value, onChange }) {
         className="si-input"
         value={query}
         onChange={handleType}
+        onKeyDown={onKeyDown}
         placeholder="City or station code"
-        aria-label={label || "Station"}
+        aria-label={ariaLabel || label || "Station"}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={expanded}
+        aria-controls={listId}
+        aria-activedescendant={expanded && active >= 0 ? `${listId}-${active}` : undefined}
+        autoComplete="off"
+        spellCheck={false}
       />
       {loading && <div className="si-loading">Searching…</div>}
-      {open && results.length > 0 && (
-        <ul className="si-dropdown">
-          {results.map((s) => (
-            <li key={s.station_id} className="si-item" onMouseDown={() => select(s)}>
-              <span className="si-code">{s.station_code}</span>
+      {expanded && (
+        <ul className="si-dropdown" id={listId} role="listbox">
+          {results.map((s, i) => (
+            <li key={s.station_id} id={`${listId}-${i}`} role="option" aria-selected={i === active}
+              className={`si-item ${i === active ? "si-item--active" : ""}`}
+              onMouseEnter={() => setActive(i)} onMouseDown={() => select(s)}>
+              <span className="si-code mono">{s.station_code}</span>
               <span className="si-name">{s.station_name}</span>
             </li>
           ))}

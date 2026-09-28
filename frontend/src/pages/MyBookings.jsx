@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Icon from "../components/Icon";
 import { useClassConfig } from "../hooks/useClassConfig";
 import { api } from "../utils/api";
 import { formatDate, formatTime, departureDateTime, dayShift, stopDate } from "../utils/dates";
@@ -42,11 +43,13 @@ export default function MyBookings() {
 
   return (
     <div className="mb-page">
+      <header className="page-head">
       <div className="mb-header">
-        <h1 className="mb-title">My Bookings</h1>
-        <div className="mb-tabs">
+        <h1 className="mb-title">My bookings</h1>
+        <div className="mb-tabs" role="group" aria-label="Filter bookings">
           {TABS.map((t) => (
-            <button key={t} className={`mb-tab ${tab === t ? "mb-tab--active" : ""}`} onClick={() => setTab(t)}>
+            <button key={t} type="button" aria-pressed={tab === t}
+              className={`mb-tab ${tab === t ? "mb-tab--active" : ""}`} onClick={() => setTab(t)}>
               {t}
               <span className="mb-tab-count">
                 {bookings.filter((b) => {
@@ -62,20 +65,30 @@ export default function MyBookings() {
         </div>
       </div>
 
-      <div className="mb-body">
-        {loading && <div className="mb-state">Loading bookings…</div>}
+      </header>
 
-        {error && <div className="mb-state">{error}</div>}
+      <div className="mb-body">
+        {loading && (
+          <div className="mb-grid" aria-busy="true" aria-label="Loading bookings">
+            {[0, 1].map((i) => <div key={i} className="skeleton" style={{ height: 168, borderRadius: 14 }} />)}
+          </div>
+        )}
+
+        {error && (
+          <div className="state state--error" role="alert">
+            <span className="state-icon"><Icon name="alert" size={22} /></span>{error}
+          </div>
+        )}
 
         {!loading && !error && filtered.length === 0 && (
           <div className="mb-empty">
-            <div className="mb-empty-icon">🎫</div>
+            <div className="state-icon"><Icon name="ticket" size={22} /></div>
             <div className="mb-empty-text">No {tab.toLowerCase()} bookings</div>
             {tab === "Upcoming" && <Link to="/" className="mb-empty-link">Search trains →</Link>}
           </div>
         )}
 
-        {filtered.map((b) => {
+        {!loading && filtered.length > 0 && <div className="mb-grid">{filtered.map((b) => {
           const { isPast, isCancelled } = classify(b);
           return (
             <Link to={`/ticket/${b.booking_id}`} key={b.booking_id} className="mb-card">
@@ -121,7 +134,7 @@ export default function MyBookings() {
               </div>
             </Link>
           );
-        })}
+        })}</div>}
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { consumeReturnPath } from "../hooks/useAuth";
 import { api } from "../utils/api";
-import "./Auth.css";
+import AuthLayout from "../components/AuthLayout";
+import Icon from "../components/Icon";
 
 export default function Login({ onLogin }) {
   const [email,    setEmail]    = useState("");
@@ -32,44 +33,38 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <Link to="/" className="auth-logo">
-          <div className="auth-logo-icon">🚆</div>
-          <span className="auth-logo-text">Rail-Sphere</span>
-        </Link>
+    <AuthLayout>
         <h1 className="auth-title">Welcome back</h1>
         <p className="auth-sub">Login to book trains and manage your trips</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
-            <label className="auth-label">Email address</label>
-            <input className="auth-input" type="email" placeholder="you@email.com"
+            <label className="auth-label" htmlFor="login-email">Email address</label>
+            <input id="login-email" className="auth-input" type="email" placeholder="you@email.com"
               value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </div>
           <div className="auth-field">
             <div className="auth-label-row">
-              <label className="auth-label">Password</label>
+              <label className="auth-label" htmlFor="login-password">Password</label>
             </div>
             <div className="auth-input-wrapper">
-              <input className="auth-input" type={showPass ? "text" : "password"}
+              <input id="login-password" className="auth-input" type={showPass ? "text" : "password"}
                 placeholder="Enter your password" value={password}
                 onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-              <button type="button" className="auth-eye" onClick={() => setShowPass((p) => !p)}>
-                {showPass ? "🙈" : "👁️"}
+              <button type="button" className="auth-eye" onClick={() => setShowPass((p) => !p)}
+                aria-label={showPass ? "Hide password" : "Show password"} aria-pressed={showPass}>
+                <Icon name={showPass ? "eyeOff" : "eye"} size={18} />
               </button>
             </div>
           </div>
           {error && <div className="auth-error">{error}</div>}
-          <button className="auth-btn" type="submit" disabled={loading}>
+          <button className="btn btn--primary btn--lg auth-btn" type="submit" disabled={loading}>
             {loading ? "Logging in…" : "Login"}
           </button>
         </form>
-        <div className="auth-divider"><span>or</span></div>
         <p className="auth-switch">
           Don't have an account?{" "}
           <Link to={`/signup${location.search}`} className="auth-switch-link">Sign up</Link>
         </p>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
