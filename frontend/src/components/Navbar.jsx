@@ -35,7 +35,6 @@ function buildNotifications(bookings) {
 
 const LINKS = [
   { to: "/", label: "Search trains", end: true },
-  { to: "/how-it-works", label: "How it works" },
   { to: "/pnr-status", label: "PNR status" },
 ];
 

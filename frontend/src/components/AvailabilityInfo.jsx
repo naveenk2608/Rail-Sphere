@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import Icon from "./Icon";
 import JourneySegments from "./JourneySegments";
 import Modal from "./Modal";
@@ -32,10 +31,7 @@ export default function AvailabilityInfo({ label = "How availability works" }) {
       </button>
       {open && (
         <Modal title="How availability works" onClose={() => setOpen(false)}
-          footer={<>
-            <Link to="/how-it-works#availability" className="btn btn--secondary btn--sm" onClick={() => setOpen(false)}>Learn more</Link>
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen(false)}>Got it</button>
-          </>}>
+          footer={<button type="button" className="btn btn--primary btn--sm" onClick={() => setOpen(false)}>Got it</button>}>
           <AvailabilityExplainer />
         </Modal>
       )}
