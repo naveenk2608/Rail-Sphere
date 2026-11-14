@@ -4,7 +4,6 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { getUserFromToken } from "./hooks/useAuth";
 import HomePage from "./pages/HomePage";
-import HowItWorks from "./pages/HowItWorks";
 import Login from "./pages/Login";
 import MyBookings from "./pages/MyBookings";
 import PassengerDetails from "./pages/PassengerDetails";
@@ -58,7 +57,6 @@ function Shell() {
           <Routes location={location}>
             {/* Public */}
             <Route path="/"             element={<HomePage />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/login"        element={<Login  onLogin={refreshAuth} />} />
             <Route path="/signup"       element={<Signup onLogin={refreshAuth} />} />
             <Route path="/search"       element={<SearchResults />} />
